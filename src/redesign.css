@@ -125,17 +125,17 @@ label{gap:8px;color:var(--muted);font-size:.7rem;font-weight:620}
 .add-method-switch>button.active svg,.workflow-switch>button.active svg{color:var(--accent)}
 
 /* Dashboard — an editorial daily canvas */
-.studio-hero{min-height:205px;padding:30px 34px;margin:12px 0 18px;border:1px solid var(--line);border-radius:32px;background:
+.studio-hero{min-height:142px;padding:20px 24px;margin:8px 0 16px;border:1px solid var(--line);border-radius:26px;background:
   radial-gradient(circle at 92% 20%,color-mix(in srgb,var(--accent) 20%,transparent),transparent 31%),
   linear-gradient(135deg,color-mix(in srgb,var(--surface-solid) 82%,transparent),var(--surface));display:flex;align-items:center;justify-content:space-between;gap:32px;box-shadow:var(--shadow);overflow:hidden}
 .studio-hero-copy{max-width:760px}
-.studio-hero h1{margin-bottom:16px;font-size:clamp(3rem,5vw,5.6rem)}
-.studio-hero-copy>p:last-child{margin:0;color:var(--muted);font-size:1rem}
-.momentum-card{min-width:300px;min-height:112px;padding:14px 15px;border:1px solid var(--line);border-radius:23px;background:color-mix(in srgb,var(--surface-solid) 62%,transparent);display:grid;grid-template-columns:74px 1fr 24px;align-items:center;gap:13px;text-align:left;cursor:pointer;backdrop-filter:blur(16px)}
+.studio-hero h1{margin:3px 0 8px;font-size:clamp(2.15rem,3.8vw,3.7rem)}
+.studio-hero-copy>p:last-child{margin:0;color:var(--muted);font-size:.88rem}
+.momentum-card{min-width:260px;min-height:84px;padding:10px 12px;border:1px solid var(--line);border-radius:19px;background:color-mix(in srgb,var(--surface-solid) 62%,transparent);display:grid;grid-template-columns:58px 1fr 20px;align-items:center;gap:11px;text-align:left;cursor:pointer;backdrop-filter:blur(16px)}
 .momentum-card:hover{border-color:color-mix(in srgb,var(--accent) 42%,var(--line));transform:translateY(-3px)}
-.momentum-ring{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--accent) var(--momentum),var(--surface-2) 0);position:relative}
+.momentum-ring{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--accent) var(--momentum),var(--surface-2) 0);position:relative}
 .momentum-ring:after{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--surface-solid)}
-.momentum-ring b{position:relative;z-index:1;font-size:1.35rem}
+.momentum-ring b{position:relative;z-index:1;font-size:1.1rem}
 .momentum-card small,.momentum-card strong,.momentum-card em{display:block}
 .momentum-card small{color:var(--muted);font-size:.62rem}
 .momentum-card strong{margin-top:5px;font-size:.78rem}
@@ -271,8 +271,8 @@ label{gap:8px;color:var(--muted);font-size:.7rem;font-weight:620}
 @media(max-width:1050px){
   .sidebar{width:210px}
   .main-content{margin-left:246px;padding-inline:22px}
-  .studio-hero{align-items:flex-start;flex-direction:column}
-  .momentum-card{width:100%}
+  .studio-hero{gap:18px}
+  .momentum-card{min-width:230px}
   .studio-grid{grid-template-columns:1fr 1fr}
   .focus-panel,.learning-glance{grid-column:1/-1}
   .skills-glance{min-height:320px}
@@ -296,10 +296,10 @@ label{gap:8px;color:var(--muted);font-size:.7rem;font-weight:620}
   .page-head{display:flex;align-items:flex-start;flex-direction:column;margin:28px 2px 30px}
   .page-head h1{font-size:clamp(3.3rem,16vw,5rem)}
   .page-head>.primary{width:100%;margin-top:8px}
-  .studio-hero{min-height:auto;margin-top:5px;padding:26px 22px;border-radius:26px}
-  .studio-hero h1{font-size:clamp(3rem,15vw,4.8rem)}
-  .momentum-card{min-width:0;grid-template-columns:64px 1fr 18px}
-  .momentum-ring{width:60px;height:60px}
+  .studio-hero{min-height:auto;margin-top:5px;padding:18px;border-radius:22px;align-items:stretch;flex-direction:column;gap:14px}
+  .studio-hero h1{font-size:clamp(2.2rem,11vw,3.5rem)}
+  .momentum-card{width:100%;min-width:0;min-height:72px;grid-template-columns:50px 1fr 18px}
+  .momentum-ring{width:46px;height:46px}
   .studio-grid{grid-template-columns:1fr}
   .studio-grid .span-2,.focus-panel,.learning-glance{grid-column:auto}
   .focus-panel{min-height:0;padding:20px}

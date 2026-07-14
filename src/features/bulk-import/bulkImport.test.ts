@@ -27,9 +27,24 @@ describe('bulk JSON import', () => {
 
     expect(first.skills).toHaveLength(2)
     expect(first.quests[0].profileId).toBe(state.activeProfileId)
+    expect(first.quests[0].xp).toBe(60)
     expect(first.knowledgeNotes[0].id).toBe('generated-id')
     expect(updated.skills.filter((skill) => skill.name === 'Java')).toHaveLength(1)
     expect(updated.skills.find((skill) => skill.name === 'Java')?.level).toBe(7)
+  })
+
+  it('accepts human difficulty and ignores imported XP customization', () => {
+    const state = createInitialState({ name: 'Kris', title: 'Builder' })
+    const imported = applyBulkImport(state, JSON.stringify({ schemaVersion: 1, quests: [{ title: 'Medium outcome', difficulty: 'medium', xp: 99 }] }), () => 'generated-id')
+    expect(imported.quests[0]).toMatchObject({ priority: 'medium', xp: 30 })
+  })
+
+  it('imports Tasks only when their Goal can be resolved', () => {
+    const state = createInitialState({ name: 'Kris', title: 'Builder' })
+    state.quests.push({ id: 'goal-1', profileId: state.activeProfileId, title: 'Learn Python', notes: '', priority: 'low', status: 'now', xp: 15 })
+    const imported = applyBulkImport(state, JSON.stringify({ schemaVersion: 1, tasks: [{ title: 'Build a small CLI', goalTitle: 'Learn Python' }] }), () => 'task-1')
+    expect(imported.tasks[0]).toMatchObject({ id: 'task-1', goalId: 'goal-1', title: 'Build a small CLI' })
+    expect(() => applyBulkImport(state, JSON.stringify({ schemaVersion: 1, tasks: [{ title: 'Impossible', goalTitle: 'Missing Goal' }] }))).toThrow('does not exist')
   })
 
   it('rejects unknown keys, unsafe URLs, and oversized input', () => {

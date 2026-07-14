@@ -1,5 +1,6 @@
 import type { AppState, NewQuest, Quest, QuestStatus } from './model'
 import { createId } from './id'
+import { goalXpForPriority } from './goalRewards'
 
 const id = createId
 const now = () => new Date().toISOString()
@@ -12,12 +13,14 @@ export function createInitialState(input: { name: string; title: string }): AppS
     profiles: [{ id: profileId, name: input.name.trim(), title: input.title.trim(), bio: '', level: 1, xp: 0, createdAt: now() }],
     skills: [],
     quests: [],
+    tasks: [],
     resources: [],
     incomeSources: [],
     moneyPlan: { monthlyTarget: 0, monthlyExpenses: 0, savingsGoal: 0, currency: 'HUF' },
     cvs: [],
     knowledgeNotes: [],
     advice: [],
+    achievements: [],
     theme: 'dark',
   }
 }
@@ -30,7 +33,7 @@ export function addQuest(state: AppState, quest: NewQuest): AppState {
     notes: quest.notes?.trim() ?? '',
     priority: quest.priority,
     status: quest.status,
-    xp: quest.xp,
+    xp: goalXpForPriority(quest.priority),
     skillId: quest.skillId,
     resourceIds: quest.resourceIds ?? [],
     dueDate: quest.dueDate,

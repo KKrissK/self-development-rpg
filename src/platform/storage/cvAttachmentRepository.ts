@@ -15,6 +15,8 @@ export interface StoredCvFile extends CvAttachment {
 export interface CvAttachmentRepository {
   save(id: string, file: File): Promise<CvAttachment>
   get(id: string): Promise<StoredCvFile | null>
+  list(): Promise<StoredCvFile[]>
+  replaceAll(files: StoredCvFile[]): Promise<void>
   delete(id: string): Promise<void>
   clear(): Promise<void>
 }
@@ -77,6 +79,37 @@ export function createCvAttachmentRepository(): CvAttachmentRepository {
         const record = await requestResult(transaction.objectStore(STORE_NAME).get(id)) as StoredCvFile | undefined
         await completed
         return record ?? null
+      } finally {
+        database.close()
+      }
+    },
+    async list() {
+      const database = await openDatabase()
+      try {
+        const transaction = database.transaction(STORE_NAME, 'readonly')
+        const completed = transactionComplete(transaction)
+        const records = await requestResult(transaction.objectStore(STORE_NAME).getAll()) as StoredCvFile[]
+        await completed
+        return records
+      } finally {
+        database.close()
+      }
+    },
+    async replaceAll(files) {
+      const ids = new Set<string>()
+      for (const file of files) {
+        if (ids.has(file.id)) throw new Error('The backup contains duplicate CV file IDs.')
+        ids.add(file.id)
+        if (file.blob.size !== file.size || file.size <= 0 || file.size > MAX_FILE_SIZE) throw new Error(`The stored CV file ${file.fileName} has invalid size metadata.`)
+      }
+      const database = await openDatabase()
+      try {
+        const transaction = database.transaction(STORE_NAME, 'readwrite')
+        const completed = transactionComplete(transaction)
+        const store = transaction.objectStore(STORE_NAME)
+        store.clear()
+        for (const file of files) store.put(file)
+        await completed
       } finally {
         database.close()
       }

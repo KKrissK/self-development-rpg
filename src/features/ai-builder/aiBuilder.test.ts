@@ -37,6 +37,27 @@ describe('portable contextual AI imports', () => {
     if (result.status !== 'valid') return
     expect(applyAiItemImport(state, result.data).resources[0].title).toBe('SQL guide')
   })
+
+  it('plans Goal Tasks from recorded skill level and evidence', () => {
+    const taskContext = {
+      ...context,
+      existingSkills: [{ name: 'Java', level: 4, targetLevel: 7, evidence: 'Maintains Spring services independently.', strengths: ['Routine API work'], growthAreas: ['Concurrency'] }],
+      selectedGoal: { title: 'Improve Java skills', notes: 'Become reliable on non-routine backend work.', linkedSkill: { name: 'Java', level: 4, targetLevel: 7, evidence: 'Maintains Spring services independently.', strengths: ['Routine API work'], growthAreas: ['Concurrency'] } },
+    }
+    const prompt = buildItemPrompt('tasks', 'Use practical projects.', taskContext)
+    expect(prompt).toContain('Improve Java skills')
+    expect(prompt).toContain('Maintains Spring services independently.')
+    expect(prompt).toContain('"level": 4')
+    expect(prompt).toContain('do not assume missing ability')
+
+    const state = createInitialState({ name: 'Kris', title: 'Builder' })
+    state.quests.push({ id: 'goal-java', profileId: state.activeProfileId, title: 'Improve Java skills', notes: '', priority: 'medium', status: 'now', xp: 30 })
+    const parsed = parseAiItemResponse(JSON.stringify({ schemaVersion: 1, tasks: [{ title: 'Build a concurrent worker', notes: 'Explain synchronization choices.', status: 'todo', goalTitle: 'Improve Java skills' }] }), 'tasks')
+    expect(parsed.status).toBe('valid')
+    if (parsed.status !== 'valid') return
+    const imported = applyAiItemImport(state, parsed.data)
+    expect(imported.tasks[0]).toMatchObject({ goalId: 'goal-java', title: 'Build a concurrent worker', status: 'todo' })
+  })
 })
 
 describe('AI skill assessment exchange', () => {

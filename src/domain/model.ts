@@ -1,9 +1,11 @@
 export type QuestStatus = 'now' | 'next' | 'later' | 'done'
+export type GoalTaskStatus = 'todo' | 'in-progress' | 'done'
 export type Priority = 'low' | 'medium' | 'high'
 export type SkillStatus = 'learning' | 'practicing' | 'proven'
 export type ResourceKind = 'book' | 'video' | 'course' | 'article' | 'podcast' | 'other'
 export type ResourceStatus = 'queued' | 'in-progress' | 'completed'
 export type CvLanguage = 'English' | 'Hungarian' | 'Other'
+export type AchievementKind = 'project' | 'milestone' | 'award' | 'certification' | 'contribution' | 'other'
 
 export interface SkillAssessmentDetails {
   summary: string
@@ -12,6 +14,14 @@ export interface SkillAssessmentDetails {
 }
 
 export interface CvAttachment {
+  id: string
+  fileName: string
+  mimeType: string
+  size: number
+  storedAt: string
+}
+
+export interface AchievementImage {
   id: string
   fileName: string
   mimeType: string
@@ -54,6 +64,18 @@ export interface Quest {
   dueDate?: string
   completedAt?: string
   xpAwardedAt?: string
+}
+
+export interface GoalTask {
+  id: string
+  profileId: string
+  goalId: string
+  title: string
+  notes: string
+  status: GoalTaskStatus
+  dueDate?: string
+  createdAt: string
+  completedAt?: string
 }
 
 export interface LearningResource {
@@ -118,19 +140,34 @@ export interface AdviceItem {
   importedAt: string
 }
 
+export interface Achievement {
+  id: string
+  profileId: string
+  title: string
+  kind: AchievementKind
+  description: string
+  url: string
+  achievedAt?: string
+  skillId?: string
+  image?: AchievementImage
+  createdAt: string
+}
+
 export interface AppState {
   schemaVersion: 1
   activeProfileId: string
   profiles: Profile[]
   skills: Skill[]
   quests: Quest[]
+  tasks: GoalTask[]
   resources: LearningResource[]
   incomeSources: IncomeSource[]
   moneyPlan: MoneyPlan
   cvs: CvVariant[]
   knowledgeNotes: KnowledgeNote[]
   advice: AdviceItem[]
+  achievements: Achievement[]
   theme: 'light' | 'dark'
 }
 
-export type NewQuest = Pick<Quest, 'title' | 'priority' | 'status' | 'xp'> & Partial<Pick<Quest, 'notes' | 'skillId' | 'resourceIds' | 'dueDate'>>
+export type NewQuest = Pick<Quest, 'title' | 'priority' | 'status'> & Partial<Pick<Quest, 'notes' | 'skillId' | 'resourceIds' | 'dueDate' | 'xp'>>

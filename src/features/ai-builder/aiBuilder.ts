@@ -3,11 +3,13 @@ import type { AppState } from '../../domain/model'
 import { createId } from '../../domain/id'
 import { applyBulkImport, parseBulkImport, type BulkImport, type BulkSummary } from '../bulk-import/bulkImport'
 
-export type ItemTarget = 'skills' | 'quests' | 'resources'
+export type ItemTarget = 'skills' | 'quests' | 'tasks' | 'resources'
 
 export interface AiBuilderContext {
   profile: { title: string; bio: string }
-  existingSkills: { name: string; level: number }[]
+  existingSkills: { name: string; level: number; targetLevel?: number; evidence?: string; assessmentSummary?: string; strengths?: string[]; growthAreas?: string[] }[]
+  existingGoals?: { title: string; status: string; skillName?: string }[]
+  selectedGoal?: { title: string; notes: string; dueDate?: string; linkedSkill: AiBuilderContext['existingSkills'][number] | null }
 }
 
 export type AiItemParseResult =
@@ -45,7 +47,13 @@ const contracts: Record<ItemTarget, string> = {
   quests: `{
   "schemaVersion": 1,
   "quests": [
-    { "title": "max 160 chars", "notes": "max 2000 chars", "priority": "low|medium|high", "status": "now|next|later", "xp": 15, "skillName": "optional exact existing skill name" }
+    { "title": "max 160 chars", "notes": "max 2000 chars", "difficulty": "easy|medium|hard", "status": "now|next|later", "skillName": "optional exact existing skill name" }
+  ]
+}`,
+  tasks: `{
+  "schemaVersion": 1,
+  "tasks": [
+    { "title": "one concrete action, max 200 chars", "notes": "useful instructions or definition of done, max 2000 chars", "status": "todo", "dueDate": "optional YYYY-MM-DD", "goalTitle": "exact selected Goal title" }
   ]
 }`,
   resources: `{
@@ -59,6 +67,7 @@ const contracts: Record<ItemTarget, string> = {
 const labels: Record<ItemTarget, string> = {
   skills: 'skills',
   quests: 'concrete outcome-oriented goals',
+  tasks: 'practical tasks for the selected Goal',
   resources: 'learning-library items',
 }
 
@@ -66,7 +75,7 @@ export function buildItemPrompt(target: ItemTarget, request: string, context: Ai
   return `You convert a person's plain-language request into structured items for a local self-development app.
 
 TASK
-Create one or more ${labels[target]} from the request between <user_request> tags. Preserve the user's intent, use concise language, and do not invent experience, credentials, completed work, or links. For skills, treat self-described ability conservatively and put only stated experience in evidence. For goals, make each outcome observable and finishable. For resources, only include a URL when you are confident it is real; otherwise use an empty string.
+Create one or more ${labels[target]} from the request between <user_request> tags. Preserve the user's intent, use concise language, and do not invent experience, credentials, completed work, or links. For skills, treat self-described ability conservatively and put only stated experience in evidence. For goals, make each outcome broad enough to contain several tasks but still observable and finishable, then choose easy, medium, or hard honestly; never supply XP because the app calculates it. For tasks, create a realistic ordered path toward the selected Goal: adapt difficulty and starting point to the linked skill evidence when present, do not assume missing ability, avoid vague actions, and use the selected Goal title exactly in every goalTitle. For resources, only include a URL when you are confident it is real; otherwise use an empty string.
 
 USER CONTEXT
 ${JSON.stringify(context, null, 2)}
@@ -128,7 +137,7 @@ export function parseAiItemResponse(raw: string, expectedTarget: ItemTarget): Ai
   const parsed = parseBulkImport(unwrapJson(raw))
   if (parsed.status === 'invalid') return parsed
 
-  const populated = (['skills', 'quests', 'resources'] as const).filter((key) => parsed.data[key].length > 0)
+  const populated = (['skills', 'quests', 'tasks', 'resources'] as const).filter((key) => parsed.data[key].length > 0)
   if (populated.length === 0) return { status: 'invalid', reason: 'The response contains no importable items.' }
   if (populated.length !== 1 || populated[0] !== expectedTarget) {
     return { status: 'invalid', reason: `The response must contain only ${expectedTarget}.` }

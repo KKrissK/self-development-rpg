@@ -13,12 +13,12 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await page.evaluate(async () => {
     localStorage.clear()
-    await new Promise<void>((resolve, reject) => {
-      const request = indexedDB.deleteDatabase('untitled.attachments.v1')
+    await Promise.all(['untitled.attachments.v1', 'untitled.achievement-images.v1'].map((databaseName) => new Promise<void>((resolve, reject) => {
+      const request = indexedDB.deleteDatabase(databaseName)
       request.onsuccess = () => resolve()
       request.onerror = () => reject(request.error)
-      request.onblocked = () => reject(new Error('CV attachment database is blocked'))
-    })
+      request.onblocked = () => reject(new Error(`${databaseName} is blocked`))
+    })))
   })
 })
 
@@ -36,6 +36,19 @@ test('creates a persistent character and cannot farm XP by reopening a Goal', as
   await page.getByRole('button', { name: 'Complete again' }).click()
   await page.reload()
   await expect(page.getByText('15 XP across level 1')).toBeVisible()
+})
+
+test('calculates Goal XP from difficulty instead of accepting a custom reward', async ({ page }) => {
+  await createCharacter(page)
+  await page.getByRole('button', { name: 'Goals', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Create goal' }).click()
+  await expect(page.getByLabel('XP reward')).toHaveCount(0)
+  await page.getByLabel('Goal title').fill('Meaningful multi-step outcome')
+  await page.getByLabel('Difficulty').selectOption('medium')
+  await page.getByRole('button', { name: 'Add goal' }).click()
+  const goalCard = page.getByRole('heading', { name: 'Meaningful multi-step outcome' }).locator('xpath=ancestor::article')
+  await expect(goalCard.getByText('medium', { exact: true })).toBeVisible()
+  await expect(goalCard.getByText('+30 XP', { exact: true })).toBeVisible()
 })
 
 test('introduces the product before setup and keeps the landing page responsive', async ({ page }) => {
@@ -87,6 +100,7 @@ test('a Goal pulls Library support and Library reflects Goal completion', async 
   await page.getByRole('button', { name: 'Library', exact: true }).first().click()
   await page.getByRole('button', { name: 'Add resource' }).click()
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Architecture field guide')
+  await page.getByRole('textbox', { name: 'Link', exact: true }).fill('https://example.com/architecture-guide')
   await page.getByRole('button', { name: 'Add to Library' }).click()
 
   await page.getByRole('button', { name: 'Goals', exact: true }).first().click()
@@ -96,6 +110,10 @@ test('a Goal pulls Library support and Library reflects Goal completion', async 
   await page.getByRole('button', { name: 'Add goal' }).click()
   const goalCard = page.getByRole('heading', { name: 'Design the new system' }).locator('xpath=ancestor::article')
   await expect(goalCard.getByText('Architecture field guide')).toBeVisible()
+  await expect(goalCard.getByRole('link', { name: 'Open Architecture field guide' })).toHaveAttribute('href', 'https://example.com/architecture-guide')
+  await page.getByRole('button', { name: 'Dashboard', exact: true }).first().click()
+  await expect(page.getByRole('link', { name: 'Open Architecture field guide' })).toHaveAttribute('href', 'https://example.com/architecture-guide')
+  await page.getByRole('button', { name: 'Goals', exact: true }).first().click()
   await goalCard.getByRole('button', { name: /Complete · \+15 XP/ }).click()
 
   await page.getByRole('button', { name: 'Library', exact: true }).first().click()
@@ -150,10 +168,10 @@ test('adds a skill, learning resource, income source, and CV variant', async ({ 
   await page.getByRole('button', { name: 'Save skill' }).click()
   await expect(page.getByRole('heading', { name: 'TypeScript' })).toBeVisible()
   await expect(page.getByText(/Reliable on routine typed frontend work/)).toBeVisible()
-  await page.getByText('View skill profile').click()
+  await page.getByRole('button', { name: 'View full skill' }).click()
   await expect(page.getByText('Builds typed React features independently')).toBeVisible()
   await expect(page.getByText('Advanced generics and library API design')).toBeVisible()
-  await page.getByRole('button', { name: 'Edit', exact: true }).click()
+  await page.getByRole('button', { name: 'Edit skill' }).click()
   await page.getByLabel('Skill name').fill('Advanced TypeScript')
   await page.getByLabel('Current level (1–10)').fill('6')
   await page.getByLabel('Experience').fill('Built and shipped a typed React application.')
@@ -230,6 +248,45 @@ test('validates and imports a portable AI response as a Goal', async ({ page }) 
   await expect(page.getByText('Publish a case study')).toBeVisible()
 })
 
+test('builds a truthful CV tuning prompt from recorded skill evidence', async ({ page }) => {
+  await createCharacter(page)
+  await page.getByRole('button', { name: 'Skills', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Add skill' }).click()
+  await page.getByRole('tab', { name: /Manual/ }).click()
+  await page.getByLabel('Skill name').fill('Playwright')
+  await page.getByLabel('Experience').fill('Built reliable dashboard filtering tests and found production defects.')
+  await page.getByRole('button', { name: 'Save skill' }).click()
+
+  await page.getByRole('button', { name: 'Career', exact: true }).first().click()
+  await page.getByRole('button', { name: 'CV vault' }).click()
+  await page.getByLabel('CV name').fill('QA CV')
+  await page.getByLabel('Role').fill('Senior QA Engineer')
+  await page.getByRole('button', { name: 'Add to vault' }).click()
+  const cvCard = page.getByRole('heading', { name: 'QA CV' }).locator('xpath=ancestor::article')
+  await cvCard.getByRole('button', { name: 'Tune with skills' }).click()
+  await page.getByLabel(/Target role or job description/).fill('Senior QA role emphasizing Playwright automation')
+  await page.getByRole('button', { name: 'Generate tuning prompt' }).click()
+  await expect(page.getByLabel('Generated CV tuning prompt')).toContainText('Built reliable dashboard filtering tests')
+  await expect(page.getByLabel('Generated CV tuning prompt')).toContainText('Never invent')
+})
+
+test('AI Coach imports a Library recommendation and connects it to a Goal', async ({ page }) => {
+  await createCharacter(page)
+  await page.getByRole('button', { name: 'Goals', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Create goal' }).click()
+  await page.getByLabel('Goal title').fill('Learn query optimization')
+  await page.getByRole('button', { name: 'Add goal' }).click()
+
+  await page.getByRole('button', { name: 'AI Coach', exact: true }).first().click()
+  const response = JSON.stringify({ schemaVersion: 1, summary: 'Use one focused resource.', recommendations: [{ title: 'Use The Index, Luke', rationale: 'Directly supports query optimization.', nextStep: 'Read the indexing chapters.', impact: 'high', kind: 'library', resourceKind: 'article', creator: 'Markus Winand', url: 'https://use-the-index-luke.com/', supportsGoalTitle: 'Learn query optimization' }] })
+  await page.getByLabel('AI response JSON').fill(response)
+  await page.getByRole('button', { name: 'Validate response' }).click()
+  await page.getByRole('button', { name: 'Import 1 items' }).click()
+  await page.getByRole('button', { name: 'Library', exact: true }).first().click()
+  const resourceCard = page.getByRole('heading', { name: 'Use The Index, Luke' }).locator('xpath=ancestor::article')
+  await expect(resourceCard).toContainText('Learn query optimization')
+})
+
 test('Skills embeds AI generation and progress-tracked assessment', async ({ page }) => {
   await createCharacter(page)
   await page.getByRole('button', { name: 'Skills', exact: true }).first().click()
@@ -261,12 +318,24 @@ test('Skills embeds AI generation and progress-tracked assessment', async ({ pag
   const sqlCard = page.getByRole('heading', { name: 'SQL' }).locator('xpath=ancestor::article')
   await expect(sqlCard.getByText('Assessment summary')).toBeVisible()
   await expect(sqlCard.getByText(/confidence/i)).toHaveCount(0)
-  await sqlCard.getByText('View skill profile').click()
-  await expect(sqlCard.getByRole('button', { name: 'Read full experience' })).toBeVisible()
-  await sqlCard.getByRole('button', { name: 'Read full experience' }).click()
-  await expect(sqlCard.getByRole('button', { name: 'Show less' })).toBeVisible()
-  await expect(sqlCard.getByText('Writes basic SELECT queries independently')).toBeVisible()
-  await expect(sqlCard.getByText('Needs practice with joins and query planning')).toBeVisible()
+  await sqlCard.getByRole('button', { name: 'View full skill' }).click()
+  const skillDialog = page.getByRole('dialog', { name: 'SQL' })
+  await expect(skillDialog.getByText('Writes basic SELECT queries independently')).toBeVisible()
+  await expect(skillDialog.getByText('Needs practice with joins and query planning')).toBeVisible()
+  await expect(skillDialog).toContainText('Can write basic SELECT queries')
+  await skillDialog.getByRole('button', { name: 'Close', exact: true }).click()
+
+  await page.getByRole('button', { name: 'List view' }).click()
+  await expect(page.locator('.skill-list-row')).toHaveCount(2)
+  const sqlRow = page.locator('.skill-list-row').filter({ hasText: 'SQL' })
+  await sqlRow.getByRole('button', { name: 'View' }).click()
+  await expect(page.getByRole('dialog', { name: 'SQL' })).toBeVisible()
+  await page.getByRole('button', { name: 'Close skill details' }).click()
+  page.once('dialog', async (dialog) => { expect(dialog.message()).toContain('Delete “SQL”?'); await dialog.dismiss() })
+  await sqlRow.getByRole('button', { name: 'Delete SQL' }).click()
+  await expect(sqlRow).toBeVisible()
+  await page.getByRole('button', { name: 'Card view' }).click()
+  await expect(page.getByRole('heading', { name: 'SQL' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'AI Profiler' })).toHaveCount(0)
 })
 
@@ -291,6 +360,50 @@ test('Goals and Library embed their own portable AI generators', async ({ page }
   await page.getByRole('button', { name: 'Validate & preview' }).click()
   await page.getByRole('button', { name: 'Import 1 items' }).click()
   await expect(page.getByRole('heading', { name: 'Effective TypeScript' })).toBeVisible()
+})
+
+test('Goals contain Tasks and AI planning uses linked skill context with clipboard import', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await createCharacter(page)
+  await page.getByRole('button', { name: 'Skills', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Add skill' }).click()
+  await page.getByRole('tab', { name: /Manual/ }).click()
+  await page.getByLabel('Skill name').fill('Java')
+  await page.getByLabel('Current level (1–10)').fill('4')
+  await page.getByLabel('Experience').fill('Maintains routine Spring services and REST endpoints independently.')
+  await page.getByRole('button', { name: 'Save skill' }).click()
+
+  await page.getByRole('button', { name: 'Goals', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Create goal' }).click()
+  await page.getByLabel('Goal title').fill('Improve Java skills')
+  await page.getByLabel('Related skill').selectOption({ label: 'Java · level 4' })
+  await page.getByRole('button', { name: 'Add goal' }).click()
+  const goal = page.getByRole('heading', { name: 'Improve Java skills' }).locator('xpath=ancestor::article')
+  await expect(goal).toBeVisible()
+  await goal.getByRole('button', { name: 'Plan Tasks' }).click()
+  await expect(page.getByRole('heading', { name: 'Tasks', exact: true })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Add tasks' }).click()
+  await page.getByLabel('Task title').fill('Build a small Spring endpoint')
+  await page.getByRole('button', { name: 'Add Task' }).click()
+  await expect(page.getByText('Build a small Spring endpoint')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Add tasks' }).click()
+  await page.getByRole('tab', { name: /Plan with AI/ }).click()
+  await page.getByRole('button', { name: 'Generate copy-paste prompt' }).click()
+  await expect(page.getByText('No formatting work needed')).toBeVisible()
+  await expect(page.getByLabel('Generated AI prompt')).toBeHidden()
+  await page.getByText('Inspect generated prompt').click()
+  await expect(page.getByLabel('Generated AI prompt')).toContainText('"level": 4')
+  await expect(page.getByLabel('Generated AI prompt')).toContainText('Maintains routine Spring services')
+
+  const result = JSON.stringify({ schemaVersion: 1, tasks: [{ title: 'Diagnose a concurrency bug', notes: 'Explain the race and verify the fix.', status: 'todo', goalTitle: 'Improve Java skills' }] })
+  await page.evaluate((value) => navigator.clipboard.writeText(value), result)
+  await page.getByRole('button', { name: 'Paste from clipboard' }).click()
+  await expect(page.getByLabel('AI response JSON')).toHaveValue(result)
+  await page.getByRole('button', { name: 'Validate & preview' }).click()
+  await page.getByRole('button', { name: 'Import 1 items' }).click()
+  await expect(page.getByText('Diagnose a concurrency bug')).toBeVisible()
 })
 
 for (const width of [320, 360, 390, 412, 768, 1024]) {
@@ -322,7 +435,7 @@ test('mobile users can reach profile, data, and theme controls', async ({ page }
   await page.getByRole('button', { name: 'More', exact: true }).click()
   await page.getByRole('button', { name: 'Profile & data' }).click()
   await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Export JSON' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Export complete backup' })).toBeVisible()
   await expect(page.getByRole('button', { name: /mode/i })).toBeVisible()
 })
 
@@ -334,31 +447,71 @@ test('invalid profile edits cannot make the workspace unloadable', async ({ page
   await expect(page.getByRole('heading', { name: /good to see you, kris/i })).toBeVisible()
 })
 
-test('bulk JSON preview imports heterogeneous profile data without frontend repetition', async ({ page }) => {
+test('achievements keep project links and locally stored pictures after reload', async ({ page }) => {
   await createCharacter(page)
-  await page.getByRole('button', { name: 'Profile', exact: true }).click()
-  const payload = {
-    schemaVersion: 1,
-    profile: { title: 'QA / Software Developer' },
-    skills: [
-      { name: 'Java', category: 'Software Development', level: 6, targetLevel: 8, status: 'practicing', evidence: 'Practical experience.' },
-      { name: 'Linux', category: 'Operating Systems', level: 2, targetLevel: 6, status: 'learning', evidence: 'Basic usage.' },
-    ],
-    quests: [{ title: 'Ship a project', priority: 'high', status: 'now', xp: 25 }],
-    knowledgeNotes: [{ title: 'Triage workflow', body: 'Match known failures before root-cause analysis.', tags: ['qa'] }],
-    incomeSources: [{ name: 'Salary', type: 'Employment', monthlyAmount: 400000, currency: 'HUF', active: true }],
-  }
-  await page.getByRole('textbox', { name: 'Bulk import JSON' }).fill(JSON.stringify(payload))
-  await page.getByRole('button', { name: 'Validate & preview' }).click()
-  await expect(page.getByLabel('Import preview')).toContainText('2skills')
-  await page.getByRole('button', { name: 'Import selected payload' }).click()
-  await expect(page.getByRole('status')).toContainText('imported')
-  await page.getByRole('button', { name: 'Skills' }).click()
-  await expect(page.getByRole('heading', { name: 'Java' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Linux' })).toBeVisible()
-  await page.getByRole('button', { name: 'Library' }).click()
-  await expect(page.getByRole('heading', { name: 'Triage workflow' })).toBeVisible()
+  await page.getByRole('button', { name: 'Achievements', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Add achievement' }).click()
+  await page.getByLabel('Achievement title').fill('Untitled workspace')
+  await page.getByLabel('Link', { exact: true }).fill('example.com/project')
+  await page.getByLabel('What makes it meaningful?').fill('A private tool built from the ground up.')
+  await page.getByLabel('Picture').setInputFiles({ name: 'project.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64') })
+  await page.getByRole('button', { name: 'Add achievement', exact: true }).last().click()
+  await expect(page.getByRole('heading', { name: 'Untitled workspace' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Open link/ })).toHaveAttribute('href', 'https://example.com/project')
+  await expect(page.getByRole('img', { name: 'Untitled workspace achievement' })).toHaveAttribute('src', /^blob:/)
   await page.reload()
-  await page.getByRole('button', { name: 'Library', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Triage workflow' })).toBeVisible()
+  await page.getByRole('button', { name: 'Achievements', exact: true }).first().click()
+  await expect(page.getByRole('heading', { name: 'Untitled workspace' })).toBeVisible()
+  await expect(page.getByRole('img', { name: 'Untitled workspace achievement' })).toHaveAttribute('src', /^blob:/)
+})
+
+test('complete backup restores profile data and actual CV files into an empty browser', async ({ page }) => {
+  await createCharacter(page)
+  await page.getByRole('button', { name: 'Skills', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Add skill' }).click()
+  await page.getByRole('tab', { name: /Manual/ }).click()
+  await page.getByLabel('Skill name').fill('Backup skill')
+  await page.getByLabel('Experience').fill('Evidence that must survive restore.')
+  await page.getByRole('button', { name: 'Save skill' }).click()
+
+  await page.getByRole('button', { name: 'Achievements', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Add achievement' }).click()
+  await page.getByLabel('Achievement title').fill('Backup project')
+  await page.getByLabel('Link', { exact: true }).fill('https://example.com/backup-project')
+  await page.getByLabel('Picture').setInputFiles({ name: 'backup-project.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64') })
+  await page.getByRole('button', { name: 'Add achievement', exact: true }).last().click()
+
+  await page.getByRole('button', { name: 'Career', exact: true }).first().click()
+  await page.getByRole('button', { name: 'CV vault' }).click()
+  await page.getByLabel('CV name').fill('Backup CV')
+  await page.getByLabel('CV file').setInputFiles({ name: 'backup-cv.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-restorable-content') })
+  await page.getByRole('button', { name: 'Add to vault' }).click()
+
+  await page.getByRole('button', { name: 'Profile', exact: true }).click()
+  await expect(page.getByText('Bulk JSON import')).toHaveCount(0)
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export complete backup' }).click()
+  const backupDownload = await downloadPromise
+  const backupPath = await backupDownload.path()
+  expect(backupPath).toBeTruthy()
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Reset workspace' }).click()
+  await expect(page.getByRole('heading', { name: 'Build your character.' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Restore complete backup' })).toBeVisible()
+  await page.locator('.onboarding-card input[type="file"]').setInputFiles(backupPath!)
+  await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Skills', exact: true }).first().click()
+  await expect(page.getByRole('heading', { name: 'Backup skill' })).toBeVisible()
+  await page.getByRole('button', { name: 'Achievements', exact: true }).first().click()
+  await expect(page.getByRole('heading', { name: 'Backup project' })).toBeVisible()
+  await expect(page.getByRole('img', { name: 'Backup project achievement' })).toHaveAttribute('src', /^blob:/)
+  await expect(page.getByRole('link', { name: /Open link/ })).toHaveAttribute('href', 'https://example.com/backup-project')
+  await page.getByRole('button', { name: 'Career', exact: true }).first().click()
+  await page.getByRole('button', { name: 'CV vault' }).click()
+  await expect(page.getByText('backup-cv.pdf')).toBeVisible()
+  const restoredDownloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download' }).click()
+  expect((await restoredDownloadPromise).suggestedFilename()).toBe('backup-cv.pdf')
 })

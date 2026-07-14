@@ -24,8 +24,9 @@ describe('career state actions', () => {
 
     expect(withQuest.quests[0].status).toBe('now')
     expect(completed.quests[0].status).toBe('done')
-    expect(completed.profiles[0].xp).toBe(25)
-    expect(completedAgain.profiles[0].xp).toBe(25)
+    expect(withQuest.quests[0].xp).toBe(60)
+    expect(completed.profiles[0].xp).toBe(60)
+    expect(completedAgain.profiles[0].xp).toBe(60)
   })
 
   it('never awards XP again after a completed quest is reopened', () => {
@@ -36,10 +37,17 @@ describe('career state actions', () => {
     const reopened = setQuestStatus(firstCompletion, questId, 'now')
     const secondCompletion = completeQuest(reopened, questId)
 
-    expect(firstCompletion.profiles[0].xp).toBe(40)
+    expect(firstCompletion.profiles[0].xp).toBe(30)
     expect(reopened.quests[0]).toMatchObject({ status: 'now', xpAwardedAt: firstCompletion.quests[0].completedAt })
     expect(reopened.quests[0].completedAt).toBeUndefined()
-    expect(secondCompletion.profiles[0].xp).toBe(40)
+    expect(secondCompletion.profiles[0].xp).toBe(30)
     expect(secondCompletion.quests[0].status).toBe('done')
+  })
+
+  it('derives rewards from difficulty and ignores a supplied XP value', () => {
+    const initial = createInitialState({ name: 'Kris', title: 'Builder' })
+    expect(addQuest(initial, { title: 'Easy', priority: 'low', status: 'now', xp: 99 }).quests[0].xp).toBe(15)
+    expect(addQuest(initial, { title: 'Medium', priority: 'medium', status: 'now', xp: 1 }).quests[0].xp).toBe(30)
+    expect(addQuest(initial, { title: 'Hard', priority: 'high', status: 'now', xp: 0 }).quests[0].xp).toBe(60)
   })
 })

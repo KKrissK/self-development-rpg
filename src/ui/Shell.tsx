@@ -1,22 +1,24 @@
-import { BookOpen, Bot, BriefcaseBusiness, CircleUserRound, Ellipsis, LayoutDashboard, ListChecks, Moon, Sparkles, Sun, TrendingUp } from 'lucide-react'
+import { BookOpen, Bot, BriefcaseBusiness, CircleUserRound, Ellipsis, LayoutDashboard, ListChecks, ListTodo, Moon, Sparkles, Sun, TrendingUp, Trophy } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { brand } from '../config/brand'
 import { useWorkspace } from '../app/AppState'
 
-export type PageId = 'dashboard' | 'skills' | 'goals' | 'library' | 'career' | 'coach' | 'profile'
+export type PageId = 'dashboard' | 'skills' | 'achievements' | 'goals' | 'tasks' | 'library' | 'career' | 'coach' | 'profile'
 const items: { id: PageId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'skills', label: 'Skills', icon: TrendingUp },
   { id: 'goals', label: 'Goals', icon: ListChecks },
+  { id: 'tasks', label: 'Tasks', icon: ListTodo },
+  { id: 'skills', label: 'Skills', icon: TrendingUp },
+  { id: 'achievements', label: 'Achievements', icon: Trophy },
   { id: 'library', label: 'Library', icon: BookOpen },
   { id: 'career', label: 'Career', icon: BriefcaseBusiness },
   { id: 'coach', label: 'AI Coach', icon: Bot },
   { id: 'profile', label: 'Profile', icon: CircleUserRound },
 ]
-const primaryMobile = items.filter(({ id }) => ['dashboard', 'skills', 'goals', 'career'].includes(id))
+const primaryMobile = items.filter(({ id }) => ['dashboard', 'goals', 'tasks', 'skills'].includes(id))
 const navigationGroups: { label: string; ids: PageId[] }[] = [
-  { label: 'Plan', ids: ['dashboard', 'goals'] },
-  { label: 'Grow', ids: ['skills', 'library'] },
+  { label: 'Plan', ids: ['dashboard', 'goals', 'tasks'] },
+  { label: 'Grow', ids: ['skills', 'achievements', 'library'] },
   { label: 'Move', ids: ['career', 'coach'] },
 ]
 
@@ -41,7 +43,7 @@ export function Shell({ page, setPage, children }: { page: PageId; setPage: (pag
       </div>
     </aside>
     <main className="main-content"><header className="workspace-bar"><div className="workspace-location"><span className="workspace-location-icon"><CurrentIcon size={16}/></span><b>{current.label}</b></div><span className="workspace-date">{today}</span><button className="workspace-avatar" onClick={() => navigate('profile')} aria-label={`Open ${profile.name} profile`}>{profile.name.slice(0, 2).toUpperCase()}</button></header>{storageWarning && <div className="warning" role="status">{storageWarning}</div>}<div className="page-stage" key={page}>{children}</div></main>
-    {moreOpen && <div className="mobile-more" role="dialog" aria-label="More navigation"><button onClick={() => navigate('library')}><BookOpen size={20}/> Library</button><button onClick={() => navigate('coach')}><Bot size={20}/> AI Coach</button><button onClick={() => navigate('profile')}><CircleUserRound size={20}/> Profile & data</button><button onClick={toggleTheme}>{state.theme === 'dark' ? <Sun size={20}/> : <Moon size={20}/>} {state.theme === 'dark' ? 'Light atmosphere' : 'Dark atmosphere'}</button></div>}
-    <nav className="mobile-nav" aria-label="Mobile navigation">{primaryMobile.map(({ id, label, icon: Icon }) => <button key={id} aria-current={page === id ? 'page' : undefined} className={page === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={20}/><span>{label}</span></button>)}<button aria-expanded={moreOpen} className={['library', 'coach', 'profile'].includes(page) ? 'active' : ''} onClick={() => setMoreOpen((open) => !open)}><Ellipsis size={20}/><span>More</span></button></nav>
+    {moreOpen && <div className="mobile-more" role="dialog" aria-label="More navigation"><button onClick={() => navigate('career')}><BriefcaseBusiness size={20}/> Career</button><button onClick={() => navigate('achievements')}><Trophy size={20}/> Achievements</button><button onClick={() => navigate('library')}><BookOpen size={20}/> Library</button><button onClick={() => navigate('coach')}><Bot size={20}/> AI Coach</button><button onClick={() => navigate('profile')}><CircleUserRound size={20}/> Profile & data</button><button onClick={toggleTheme}>{state.theme === 'dark' ? <Sun size={20}/> : <Moon size={20}/>} {state.theme === 'dark' ? 'Light atmosphere' : 'Dark atmosphere'}</button></div>}
+    <nav className="mobile-nav" aria-label="Mobile navigation">{primaryMobile.map(({ id, label, icon: Icon }) => <button key={id} aria-current={page === id ? 'page' : undefined} className={page === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={20}/><span>{label}</span></button>)}<button aria-expanded={moreOpen} className={['career', 'achievements', 'library', 'coach', 'profile'].includes(page) ? 'active' : ''} onClick={() => setMoreOpen((open) => !open)}><Ellipsis size={20}/><span>More</span></button></nav>
   </div>
 }

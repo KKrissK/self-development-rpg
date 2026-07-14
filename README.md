@@ -43,8 +43,8 @@ npm run e2e
 - No account, backend, analytics, remote font, direct AI API, or billing package.
 - Workspace metadata is validated and stored in one versioned browser-local record; CV documents are stored as original file blobs in IndexedDB.
 - The CV Vault accepts PDF, DOC, DOCX, ODT, RTF, and TXT files up to 20 MB, with download, replace, and delete controls.
-- A full reset also erases locally stored CV files. JSON exports currently contain metadata, not the attached file contents.
-- Profile → Your data provides JSON export, validated import, and reset.
+- A full reset also erases locally stored CV files.
+- Profile → Your data provides a validated complete backup and restore flow, including every profile record and attached CV file, plus reset.
 - Skills, Goals, and Library each provide focused copy/paste AI add methods that validate returned JSON and preview every item before explicit import.
 - Its single-skill assessment prompt guides any AI through a progress-tracked interview and conservative 1–10 capability estimate, then stores the reasoning, experience, demonstrated strengths, and growth areas separately.
 - AI Coach creates a copy/paste coaching prompt for any AI and validates the returned JSON before explicit import.
