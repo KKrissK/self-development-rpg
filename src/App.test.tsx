@@ -4,11 +4,11 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
 
 describe('app activation', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => { localStorage.clear(); window.history.replaceState(null, '', '#/') })
 
   it('creates the first character and opens the dashboard', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    const view = render(<App />)
 
     expect(screen.getByRole('heading', { name: /see where you are/i })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /build your workspace/i }))
@@ -22,6 +22,11 @@ describe('app activation', () => {
 
     await user.click(screen.getByRole('button', { name: 'Profile' }))
     expect(screen.getByRole('button', { name: 'Wipe test data & restart' })).toBeInTheDocument()
+    expect(window.location.hash).toBe('#/profile')
+
+    view.unmount()
+    render(<App />)
+    expect(screen.getByRole('heading', { name: 'Profile' })).toBeInTheDocument()
   })
 
   it('lets a newcomer return from setup to the product overview', async () => {

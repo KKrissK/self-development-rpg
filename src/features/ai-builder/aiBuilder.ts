@@ -8,10 +8,10 @@ export type ItemTarget = 'skills' | 'quests' | 'tasks' | 'resources'
 
 export interface AiBuilderContext {
   profile: { title: string; bio: string }
-  existingSkills: { name: string; level: number; targetLevel?: number; evidence?: string; assessmentSummary?: string; strengths?: string[]; growthAreas?: string[] }[]
-  existingGoals?: { title: string; status: string; skillName?: string }[]
-  selectedGoal?: { title: string; notes: string; dueDate?: string; linkedSkill: AiBuilderContext['existingSkills'][number] | null }
-  focusSkill?: AiBuilderContext['existingSkills'][number]
+  existingSkills: { name: string; level: number; evidence?: string; assessmentSummary?: string; strengths?: string[]; growthAreas?: string[] }[]
+  existingGoals?: { title: string; status: string; skillNames?: string[] }[]
+  selectedGoal?: { title: string; notes: string; dueDate?: string; linkedSkill: AiBuilderContext['existingSkills'][number] | null; linkedSkills?: AiBuilderContext['existingSkills']; supportingResources?: { title: string; kind: string; status: string; notes?: string }[]; existingTasks?: { title: string; notes: string; status: string; dueDate?: string }[] }
+  focusSkills?: AiBuilderContext['existingSkills']
 }
 
 export type AiItemParseResult =
@@ -24,7 +24,6 @@ const assessmentSchema = z.object({
     name: z.string().min(1).max(100),
     category: z.string().max(60),
     level: z.number().int().min(1).max(10),
-    targetLevel: z.number().int().min(1).max(10),
     status: z.enum(['learning', 'practicing', 'proven']),
     evidence: z.string().max(1000),
     assessmentSummary: z.string().min(1).max(1000),
@@ -43,13 +42,13 @@ const contracts: Record<ItemTarget, string> = {
   skills: `{
   "schemaVersion": 1,
   "skills": [
-    { "name": "max 100 chars", "category": "max 60 chars", "level": 1, "targetLevel": 5, "status": "learning|practicing|proven", "evidence": "max 1000 chars" }
+    { "name": "max 100 chars", "category": "max 60 chars", "level": 1, "status": "learning|practicing|proven", "evidence": "max 1000 chars" }
   ]
 }`,
   quests: `{
   "schemaVersion": 1,
   "quests": [
-    { "title": "max 160 chars", "notes": "max 2000 chars", "difficulty": "easy|medium|hard", "status": "now|next|later", "skillName": "optional exact existing skill name" }
+    { "title": "max 160 chars", "notes": "max 2000 chars", "difficulty": "easy|medium|hard", "status": "now|next|later", "skillNames": ["optional exact existing skill names"] }
   ]
 }`,
   tasks: `{
@@ -77,7 +76,7 @@ export function buildItemPrompt(target: ItemTarget, request: string, context: Ai
   return `You convert a person's plain-language request into structured items for a local self-development app.
 
 TASK
-Create one or more ${labels[target]} from the request between <user_request> tags. Preserve the user's intent, use concise language, and do not invent experience, credentials, completed work, or links. For skills, treat self-described ability conservatively and put only stated experience in evidence. For goals, make each outcome broad enough to contain several tasks but still observable and finishable, then choose easy, medium, or hard honestly; never supply XP because the app calculates it. When USER CONTEXT contains focusSkill, create goals that measurably improve that skill from its recorded current level toward its target level, address its evidence and growth areas, and use the focusSkill name exactly as skillName for every returned goal. For tasks, create a realistic ordered path toward the selected Goal: adapt difficulty and starting point to the linked skill evidence when present, do not assume missing ability, avoid vague actions, and use the selected Goal title exactly in every goalTitle. For resources, only include a URL when you are confident it is real; otherwise use an empty string.
+Create one or more ${labels[target]} from the request between <user_request> tags. Preserve the user's intent, use concise language, and do not invent experience, credentials, completed work, or links. For skills, treat self-described ability conservatively and put only stated experience in evidence. For goals, make each outcome broad enough to contain several tasks but still observable and finishable, then choose easy, medium, or hard honestly; never supply XP because the app calculates it. When USER CONTEXT contains focusSkills, create a general improvement goal that combines the selected overlapping skills, use every selected skill's recorded experience and growth areas without aiming for any numeric level, and return every focusSkills name exactly in skillNames for every returned goal. For tasks, derive the plan entirely from selectedGoal: its outcome, notes, deadline, all linked skill evidence and assessments, supporting Library resources, and existing Tasks. Create a realistic ordered path that moves the user from their demonstrated starting point to the Goal, avoid duplicating existing Tasks, use concrete actions with useful definitions of done, do not assume missing ability, and use the selected Goal title exactly in every goalTitle. For resources, only include a URL when you are confident it is real; otherwise use an empty string.
 
 USER CONTEXT
 ${JSON.stringify(context, null, 2)}
@@ -119,12 +118,49 @@ When the interview is complete, return JSON only, without markdown fences or com
     "name": "max 100 chars",
     "category": "max 60 chars",
     "level": 1,
-    "targetLevel": 5,
     "status": "learning|practicing|proven",
     "evidence": "concrete experience observed or reported, max 1000 chars",
     "assessmentSummary": "concise reason this level fits, max 320 chars",
     "strengths": ["1-5 demonstrated capabilities, each max 160 chars"],
     "gaps": ["1-5 specific limitations or next growth areas, each max 160 chars"]
+  }
+}`
+}
+
+export function buildQuickSkillEstimatePrompt(skillDescription: string, context: AiBuilderContext): string {
+  return `Act as a quick, conservative skill-level estimator. Estimate demonstrated current ability without running a knowledge test or asking the user to perform exercises.
+
+Assess exactly one skill described between <skill_to_estimate> tags. Ask one compact batch of 5-8 easy questions, then wait for one reply:
+1. Prefer yes/no, multiple-choice, a number, or a few-word answer.
+2. Ask how long and how recently the user has used the skill, and how often they use it.
+3. Ask whether they have seen, tried, or independently completed several representative activities at beginner, routine, and advanced levels for this specific skill.
+4. Ask about real projects, work, outcomes, and whether they needed guidance. Do not ask trivia, theory quizzes, coding questions, or practical tests.
+5. Make each question easy to answer in a numbered list. Include "Not sure" and "Not applicable" where useful.
+6. After the user's single reply, ask at most one short clarification only if a missing answer would materially change the estimate. Otherwise output the final JSON immediately.
+7. Treat yes answers as self-reported exposure, not proof of mastery. Score conservatively and explain uncertainty in the assessment summary.
+
+Use this 1-10 rubric strictly:
+1 = awareness only; 2 = basic vocabulary and recognition; 3 = can do simple work with guidance; 4 = can independently handle routine work; 5 = reliable intermediate across common situations; 6 = handles non-routine complexity; 7 = advanced, diagnoses and teaches; 8 = deep expert across difficult contexts; 9 = recognized authority with exceptional breadth; 10 = field-shaping mastery. Most working practitioners should fall between 3 and 7.
+
+USER CONTEXT
+${JSON.stringify(context, null, 2)}
+
+<skill_to_estimate>
+${skillDescription.trim()}
+</skill_to_estimate>
+
+After the answers, return JSON only, without markdown fences or commentary, using exactly this contract:
+{
+  "schemaVersion": 1,
+  "skill": {
+    "name": "max 100 chars",
+    "category": "max 60 chars",
+    "level": 1,
+    "status": "learning|practicing|proven",
+    "evidence": "concise self-reported experience, max 1000 chars",
+    "assessmentSummary": "concise estimate and uncertainty, max 1000 chars",
+    "strengths": ["1-5 likely capabilities supported by answers, each max 200 chars"],
+    "gaps": ["1-5 unverified or missing capabilities, each max 200 chars"]
   }
 }`
 }
@@ -162,7 +198,7 @@ export function applyAiItemImport(state: AppState, data: BulkImport): AppState {
 
 export function applySkillAssessment(state: AppState, assessment: SkillAssessment): AppState {
   const { assessmentSummary, strengths, gaps } = assessment.skill
-  const skill = { name: assessment.skill.name, category: assessment.skill.category, level: assessment.skill.level, targetLevel: assessment.skill.targetLevel, status: assessment.skill.status, evidence: assessment.skill.evidence }
+  const skill = { name: assessment.skill.name, category: assessment.skill.category, level: assessment.skill.level, status: assessment.skill.status, evidence: assessment.skill.evidence }
   const profileId = state.activeProfileId
   const existing = state.skills.findIndex((item) => item.profileId === profileId && item.name.trim().toLocaleLowerCase() === skill.name.trim().toLocaleLowerCase())
   const item = {

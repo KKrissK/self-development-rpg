@@ -7,7 +7,6 @@ export interface CoachContext {
     name: string
     category?: string
     level: number
-    targetLevel: number
     status?: string
     experience?: string
     assessmentSummary?: string

@@ -6,8 +6,8 @@ import { extractJsonObject } from '../../platform/json'
 
 const safeUrl = z.string().max(1000).refine((value) => !value || /^https?:\/\//i.test(value), 'Only HTTP(S) links are supported.')
 const profilePatch = z.object({ name: z.string().min(1).max(80).optional(), title: z.string().max(100).optional(), bio: z.string().max(1000).optional() }).strict()
-const skillInput = z.object({ name: z.string().min(1).max(100), category: z.string().max(60).default('General'), level: z.number().int().min(1).max(10), targetLevel: z.number().int().min(1).max(10), status: z.enum(['learning', 'practicing', 'proven']).default('learning'), evidence: z.string().max(1000).default('') }).strict()
-const questInput = z.object({ title: z.string().min(1).max(160), notes: z.string().max(2000).default(''), priority: z.enum(['low', 'medium', 'high']).optional(), difficulty: z.enum(['easy', 'medium', 'hard']).optional(), status: z.enum(['now', 'next', 'later', 'done']).default('next'), xp: z.number().int().min(0).max(100).optional(), dueDate: z.string().max(10).optional(), skillName: z.string().max(100).optional() }).strict().transform((input) => { const priority = input.difficulty ? priorityForGoalDifficulty(input.difficulty) : input.priority ?? 'low'; return { ...input, priority, xp: goalXpForPriority(priority) } })
+const skillInput = z.object({ name: z.string().min(1).max(100), category: z.string().max(60).default('General'), level: z.number().int().min(1).max(10), status: z.enum(['learning', 'practicing', 'proven']).default('learning'), evidence: z.string().max(1000).default('') }).strict()
+const questInput = z.object({ title: z.string().min(1).max(160), notes: z.string().max(2000).default(''), priority: z.enum(['low', 'medium', 'high']).optional(), difficulty: z.enum(['easy', 'medium', 'hard']).optional(), status: z.enum(['now', 'next', 'later', 'done']).default('next'), xp: z.number().int().min(0).max(100).optional(), dueDate: z.string().max(10).optional(), skillName: z.string().max(100).optional(), skillNames: z.array(z.string().min(1).max(100)).max(10).optional() }).strict().transform((input) => { const priority = input.difficulty ? priorityForGoalDifficulty(input.difficulty) : input.priority ?? 'low'; return { ...input, priority, xp: goalXpForPriority(priority) } })
 const taskInput = z.object({ title: z.string().min(1).max(200), notes: z.string().max(2000).default(''), status: z.enum(['todo', 'in-progress', 'done']).default('todo'), dueDate: z.string().max(10).optional(), goalTitle: z.string().min(1).max(160) }).strict()
 const knowledgeInput = z.object({ title: z.string().min(1).max(160), body: z.string().max(5000).default(''), tags: z.array(z.string().min(1).max(40)).max(20).default([]) }).strict()
 const resourceInput = z.object({ title: z.string().min(1).max(200), kind: z.enum(['book', 'video', 'course', 'article', 'podcast', 'other']), status: z.enum(['queued', 'in-progress', 'completed']).default('queued'), creator: z.string().max(120).default(''), url: safeUrl.default(''), notes: z.string().max(2000).default(''), skillName: z.string().max(100).optional() }).strict()
@@ -61,7 +61,10 @@ export function applyBulkImport(state: AppState, raw: string, makeId: () => stri
   }
   const skillId = (name?: string) => name ? skills.find((skill) => skill.profileId === profileId && skill.name.toLocaleLowerCase() === name.toLocaleLowerCase())?.id : undefined
 
-  const quests: Quest[] = [...data.quests.map((input) => ({ id: makeId(), profileId, title: input.title, notes: input.notes, priority: input.priority, status: input.status, xp: goalXpForPriority(input.priority), dueDate: input.dueDate, skillId: skillId(input.skillName) })), ...state.quests]
+  const quests: Quest[] = [...data.quests.map((input) => {
+    const skillIds = [...new Set((input.skillNames ?? (input.skillName ? [input.skillName] : [])).map((name) => skillId(name)).filter((id): id is string => Boolean(id)))]
+    return { id: makeId(), profileId, title: input.title, notes: input.notes, priority: input.priority, status: input.status, xp: goalXpForPriority(input.priority), dueDate: input.dueDate, skillId: skillIds[0], skillIds }
+  }), ...state.quests]
   const goalId = (title: string) => quests.find((goal) => goal.profileId === profileId && goal.title.trim().toLocaleLowerCase() === title.trim().toLocaleLowerCase())?.id
   const tasks: GoalTask[] = [...data.tasks.map((input) => {
     const resolvedGoalId = goalId(input.goalTitle)
@@ -80,8 +83,8 @@ export function applyBulkImport(state: AppState, raw: string, makeId: () => stri
 export const bulkImportTemplate = JSON.stringify({
   schemaVersion: 1,
   profile: { title: 'Role or direction', bio: 'Short bio' },
-  skills: [{ name: 'Example skill', category: 'Category', level: 3, targetLevel: 7, status: 'learning', evidence: 'Evidence or experience' }],
-  quests: [{ title: 'Concrete next action', notes: '', difficulty: 'easy', status: 'next', skillName: 'Example skill' }],
+  skills: [{ name: 'Example skill', category: 'Category', level: 3, status: 'learning', evidence: 'Evidence or experience' }],
+  quests: [{ title: 'Concrete next action', notes: '', difficulty: 'easy', status: 'next', skillNames: ['Example skill'] }],
   tasks: [{ title: 'First practical step', notes: '', status: 'todo', goalTitle: 'Concrete next action' }],
   knowledgeNotes: [{ title: 'What I know', body: 'Reusable knowledge note', tags: ['topic'] }],
   resources: [{ title: 'Resource title', kind: 'book', status: 'queued', creator: '', url: '', notes: '', skillName: 'Example skill' }],

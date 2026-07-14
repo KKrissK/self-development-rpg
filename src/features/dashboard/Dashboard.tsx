@@ -1,7 +1,6 @@
-import { useState } from 'react'
-import { ArrowRight, ArrowUpRight, BookOpen, Check, Circle, ExternalLink, Plus, Sparkles, Target, WalletCards } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, BookOpen, Check, Circle, ExternalLink, Sparkles, Target, WalletCards } from 'lucide-react'
 import { useWorkspace } from '../../app/AppState'
-import { addQuest, completeQuest, setQuestStatus } from '../../domain/actions'
+import { completeQuest, setQuestStatus } from '../../domain/actions'
 import type { LearningResource, QuestStatus } from '../../domain/model'
 import { useI18n } from '../../i18n/I18n'
 
@@ -18,7 +17,6 @@ function GoalResourceLinks({ resourceIds, resources }: { resourceIds?: string[];
 export function Dashboard({ onNavigate }: { onNavigate: (page: DashboardDestination) => void }) {
   const { state, update } = useWorkspace()
   const { locale } = useI18n()
-  const [questTitle, setQuestTitle] = useState('')
   if (!state) return null
 
   const profile = state.profiles.find((item) => item.id === state.activeProfileId) ?? state.profiles[0]
@@ -31,13 +29,6 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: DashboardDestinat
   const xpInLevel = profile.xp % 100
   const nowCount = allActiveQuests.filter((goal) => goal.status === 'now').length
 
-  function quickAddQuest(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!questTitle.trim()) return
-    update((current) => addQuest(current, { title: questTitle, priority: 'low', status: 'now' }))
-    setQuestTitle('')
-  }
-
   return <div className="page dashboard-page">
     <header className="studio-hero">
       <div className="studio-hero-copy"><p className="eyebrow">Your space, today</p><h1>Good to see you, {profile.name}.</h1><p>{nowCount ? `${nowCount} ${nowCount === 1 ? 'goal has' : 'goals have'} your attention right now.` : 'A clear day is a good place to begin.'}</p></div>
@@ -45,7 +36,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: DashboardDestinat
     </header>
 
     <div className="dashboard-grid studio-grid">
-      <section className="panel span-2 dashboard-action-panel focus-panel"><div className="panel-title"><div><p className="eyebrow">YOUR NEXT OUTCOME</p><h2>What deserves your attention?</h2></div><button className="panel-source-link" onClick={() => onNavigate('goals')}>All Goals <ArrowRight size={15}/></button></div><form className="dashboard-quick-add" onSubmit={quickAddQuest}><Plus size={18}/><input aria-label="Quick add goal" value={questTitle} onChange={(event) => setQuestTitle(event.target.value)} maxLength={160} placeholder="Capture a goal without breaking your flow…"/><button className="primary" type="submit">Add goal</button></form>{activeQuests.length ? <div className="stack focus-list">{activeQuests.map((quest) => <div className={`quest-row dashboard-quest-row focus-row ${quest.status}`} key={quest.id}><button className="check" aria-label={`Complete ${quest.title}`} onClick={() => update((current) => completeQuest(current, quest.id))}><Check size={15}/></button><div className="dashboard-goal-main"><button className="dashboard-item-link" onClick={() => onNavigate('goals')}><b>{quest.title}</b><small>{quest.priority} priority · {(quest.resourceIds?.length ?? 0)} connected resource{quest.resourceIds?.length === 1 ? '' : 's'}</small></button><GoalResourceLinks resourceIds={quest.resourceIds} resources={state.resources}/></div><span className="focus-lane"><Circle size={7}/>{quest.status}</span><select aria-label={`Plan for ${quest.title}`} value={quest.status} onChange={(event) => update((current) => setQuestStatus(current, quest.id, event.target.value as QuestStatus))}><option value="now">Now</option><option value="next">Next</option><option value="later">Later</option><option value="done">Done</option></select></div>)}</div> : <button className="dashboard-empty-action" onClick={() => onNavigate('goals')}><Target size={19}/><span><b>Nothing is competing for your attention.</b><small>Choose one meaningful outcome to start with.</small></span><ArrowRight size={15}/></button>}</section>
+      <section className="panel span-2 dashboard-action-panel focus-panel"><div className="panel-title"><div><p className="eyebrow">YOUR NEXT OUTCOME</p><h2>What deserves your attention?</h2></div><button className="panel-source-link" onClick={() => onNavigate('goals')}>All Goals <ArrowRight size={15}/></button></div>{activeQuests.length ? <div className="stack focus-list">{activeQuests.map((quest) => <div className={`quest-row dashboard-quest-row focus-row ${quest.status}`} key={quest.id}><button className="check" aria-label={`Complete ${quest.title}`} onClick={() => update((current) => completeQuest(current, quest.id))}><Check size={15}/></button><div className="dashboard-goal-main"><button className="dashboard-item-link" onClick={() => onNavigate('goals')}><b>{quest.title}</b><small>{quest.priority} priority · {(quest.resourceIds?.length ?? 0)} connected resource{quest.resourceIds?.length === 1 ? '' : 's'}</small></button><GoalResourceLinks resourceIds={quest.resourceIds} resources={state.resources}/></div><span className="focus-lane"><Circle size={7}/>{quest.status}</span><select aria-label={`Plan for ${quest.title}`} value={quest.status} onChange={(event) => update((current) => setQuestStatus(current, quest.id, event.target.value as QuestStatus))}><option value="now">Now</option><option value="next">Next</option><option value="later">Later</option><option value="done">Done</option></select></div>)}</div> : <button className="dashboard-empty-action" onClick={() => onNavigate('goals')}><Target size={19}/><span><b>Nothing is competing for your attention.</b><small>Choose one meaningful outcome to start with.</small></span><ArrowRight size={15}/></button>}</section>
 
       <button className="panel dashboard-nav-card skills-glance" onClick={() => onNavigate('skills')}><div className="panel-title"><div><p className="eyebrow">Capabilities</p><h2>{skills.length ? `${skills.length} skills in view` : 'Start your profile'}</h2></div><span className="card-orb lilac"><Sparkles/></span></div>{skills.length ? <div className="skill-cloud">{skills.slice(0, 5).map((skill, index) => <span key={skill.id} style={{ '--level': `${skill.level * 10}%`, '--delay': index } as React.CSSProperties}><i/><b>{skill.name}</b><small>{skill.level}/10</small></span>)}</div> : <p className="empty">Add skills and the experience behind them.</p>}<span className="card-source">Open Skills <ArrowRight size={14}/></span></button>
 

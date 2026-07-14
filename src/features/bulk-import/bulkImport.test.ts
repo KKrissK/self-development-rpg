@@ -6,8 +6,8 @@ const payload = JSON.stringify({
   schemaVersion: 1,
   profile: { title: 'QA / Software Developer', bio: 'Software engineering graduate.' },
   skills: [
-    { name: 'Java', category: 'Software Development', level: 6, targetLevel: 8, status: 'practicing', evidence: 'Practical experience.' },
-    { name: 'Linux', category: 'Operating Systems', level: 2, targetLevel: 6, status: 'learning', evidence: 'Basic usage.' },
+    { name: 'Java', category: 'Software Development', level: 6, status: 'practicing', evidence: 'Practical experience.' },
+    { name: 'Linux', category: 'Operating Systems', level: 2, status: 'learning', evidence: 'Basic usage.' },
   ],
   quests: [{ title: 'Ship a project', priority: 'high', status: 'now', xp: 20 }],
   knowledgeNotes: [{ title: 'Jenkins triage workflow', body: 'Known tickets and root causes.', tags: ['jenkins', 'qa'] }],
@@ -23,7 +23,7 @@ describe('bulk JSON import', () => {
   it('upserts skills by name and creates local ids for imported records', () => {
     const state = createInitialState({ name: 'Kris', title: 'Builder' })
     const first = applyBulkImport(state, payload, () => 'generated-id')
-    const updated = applyBulkImport(first, JSON.stringify({ schemaVersion: 1, skills: [{ name: 'Java', category: 'Software Development', level: 7, targetLevel: 9, status: 'proven', evidence: 'Updated.' }] }), () => 'other-id')
+    const updated = applyBulkImport(first, JSON.stringify({ schemaVersion: 1, skills: [{ name: 'Java', category: 'Software Development', level: 7, status: 'proven', evidence: 'Updated.' }] }), () => 'other-id')
 
     expect(first.skills).toHaveLength(2)
     expect(first.quests[0].profileId).toBe(state.activeProfileId)
@@ -37,6 +37,16 @@ describe('bulk JSON import', () => {
     const state = createInitialState({ name: 'Kris', title: 'Builder' })
     const imported = applyBulkImport(state, JSON.stringify({ schemaVersion: 1, quests: [{ title: 'Medium outcome', difficulty: 'medium', xp: 99 }] }), () => 'generated-id')
     expect(imported.quests[0]).toMatchObject({ priority: 'medium', xp: 30 })
+  })
+
+  it('links an imported Goal to multiple overlapping skills', () => {
+    const state = createInitialState({ name: 'Kris', title: 'Builder' })
+    state.skills.push(
+      { id: 'java', profileId: state.activeProfileId, name: 'Java', category: 'Development', level: 4, status: 'practicing', evidence: '' },
+      { id: 'qa', profileId: state.activeProfileId, name: 'QA automation', category: 'Testing', level: 3, status: 'practicing', evidence: '' },
+    )
+    const imported = applyBulkImport(state, JSON.stringify({ schemaVersion: 1, quests: [{ title: 'Improve Java automation', skillNames: ['Java', 'QA automation'] }] }), () => 'goal-id')
+    expect(imported.quests[0]).toMatchObject({ skillId: 'java', skillIds: ['java', 'qa'] })
   })
 
   it('imports Tasks only when their Goal can be resolved', () => {

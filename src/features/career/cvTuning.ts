@@ -3,7 +3,7 @@ import type { CvVariant, Profile, Skill } from '../../domain/model'
 export interface CvTuningRequest {
   profile: Pick<Profile, 'name' | 'title' | 'bio'>
   cv: Pick<CvVariant, 'name' | 'employer' | 'role' | 'language' | 'notes' | 'fileName' | 'attachment'>
-  skills: Pick<Skill, 'name' | 'category' | 'level' | 'targetLevel' | 'status' | 'evidence' | 'assessment'>[]
+  skills: Pick<Skill, 'name' | 'category' | 'level' | 'status' | 'evidence' | 'assessment'>[]
   target: string
   instructions: string
 }
@@ -15,7 +15,6 @@ export function buildCvTuningPrompt({ profile, cv, skills, target, instructions 
       name: skill.name,
       category: skill.category,
       currentLevelOutOf10: skill.level,
-      targetLevelOutOf10: skill.targetLevel,
       status: skill.status,
       experience: skill.evidence,
       assessmentSummary: skill.assessment?.summary ?? '',
@@ -38,7 +37,7 @@ IMPORTANT SOURCE RULES
 - The current CV is the primary source for employment dates, employers, education, contact details, and claimed accomplishments.
 - The skill profile is additional candidate context. Use it to surface relevant capabilities and evidence that the current CV may understate.
 - Never invent employers, dates, qualifications, responsibilities, metrics, tools, projects, or outcomes.
-- Do not turn an aspiration, target level, or growth area into current experience.
+- Do not turn an aspiration or growth area into current experience.
 - The 1-10 skill levels are private calibration data. Never print numeric levels in the CV.
 - When a skill is relevant but lacks enough evidence for a credible CV claim, put it in "Questions / evidence needed" instead of adding it to the CV.
 - If the source CV conflicts with the skill profile, preserve the CV claim and flag the conflict for review.

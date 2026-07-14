@@ -3,7 +3,7 @@ import { buildCoachPrompt, parseCoachResponse } from './coachExchange'
 
 const context = {
   profile: { name: 'Kris', title: 'Builder', bio: '' },
-  skills: [{ name: 'TypeScript', category: 'Technical', level: 5, targetLevel: 8, status: 'practicing', experience: 'Built React tools.', assessmentSummary: 'Reliable routine work.', strengths: ['API design'], growthAreas: ['Performance diagnosis'] }],
+  skills: [{ name: 'TypeScript', category: 'Technical', level: 5, status: 'practicing', experience: 'Built React tools.', assessmentSummary: 'Reliable routine work.', strengths: ['API design'], growthAreas: ['Performance diagnosis'] }],
   currentGoals: [{ title: 'Ship alpha', notes: 'Finish core flow', status: 'now', priority: 'high', relatedSkill: 'TypeScript', supportingLibraryItems: [] }],
   currentLibrary: [{ title: 'Effective TypeScript', kind: 'book', status: 'queued', relatedSkill: 'TypeScript' }],
 }

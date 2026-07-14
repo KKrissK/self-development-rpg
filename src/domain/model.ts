@@ -45,7 +45,6 @@ export interface Skill {
   name: string
   category: string
   level: number
-  targetLevel: number
   status: SkillStatus
   evidence: string
   assessment?: SkillAssessmentDetails
@@ -60,6 +59,7 @@ export interface Quest {
   status: QuestStatus
   xp: number
   skillId?: string
+  skillIds?: string[]
   resourceIds?: string[]
   dueDate?: string
   completedAt?: string
@@ -149,6 +149,7 @@ export interface Achievement {
   url: string
   achievedAt?: string
   skillId?: string
+  skillIds?: string[]
   image?: AchievementImage
   createdAt: string
 }
@@ -170,4 +171,4 @@ export interface AppState {
   theme: 'light' | 'dark'
 }
 
-export type NewQuest = Pick<Quest, 'title' | 'priority' | 'status'> & Partial<Pick<Quest, 'notes' | 'skillId' | 'resourceIds' | 'dueDate' | 'xp'>>
+export type NewQuest = Pick<Quest, 'title' | 'priority' | 'status'> & Partial<Pick<Quest, 'notes' | 'skillId' | 'skillIds' | 'resourceIds' | 'dueDate' | 'xp'>>

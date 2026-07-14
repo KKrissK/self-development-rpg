@@ -5,6 +5,7 @@ import type { CvVariant } from '../../domain/model'
 import { copyText } from '../../platform/clipboard'
 import { buildCvTuningPrompt } from './cvTuning'
 import { useI18n } from '../../i18n/I18n'
+import { AI_HANDOFF_COPY } from '../../content/aiHandoff'
 
 export function CvTuningPanel({ cv, onClose }: { cv: CvVariant; onClose: () => void }) {
   const { state } = useWorkspace()
@@ -37,7 +38,7 @@ export function CvTuningPanel({ cv, onClose }: { cv: CvVariant; onClose: () => v
     <div className="cv-tuning-context"><span><FileText size={16}/><b>{cv.attachment?.fileName ?? (cv.fileName || 'No CV file attached')}</b></span><span><Sparkles size={16}/><b>{context.skills.length} skills included</b></span></div>
     <div className="cv-tuning-fields"><label>Target role or job description<span className="field-guidance">Paste the vacancy, or describe the kind of role this CV should target.</span><textarea value={target} onChange={(event) => setTarget(event.target.value)} maxLength={12_000} placeholder="Paste the job description or describe the target roleâ€¦"/></label><label>Editing preferences <span className="field-guidance">Optional: length, tone, format, emphasis, or details to preserve.</span><textarea value={instructions} onChange={(event) => setInstructions(event.target.value)} maxLength={2_000} placeholder="For example: keep it to two pages and emphasize automation impact."/></label></div>
     <button className="primary" onClick={generate}><Sparkles size={17}/> Create AI prompt</button>
-    {prompt && <div className="cv-tuning-output"><div><h3>Send the prompt and your CV to an AI</h3><p>Click Copy prompt. Open ChatGPT or another AI, paste the prompt, and attach your CV file. If you cannot attach it, paste the full CV text after the prompt.</p></div><textarea aria-label="Generated CV tuning prompt" className="code-area" readOnly value={prompt}/><button className="primary" onClick={copy}><Clipboard size={17}/> Copy prompt</button></div>}
+    {prompt && <div className="cv-tuning-output"><div><h3>Send the prompt and your CV to an AI</h3><p>{AI_HANDOFF_COPY.attachCv}</p></div><textarea aria-label="Generated CV tuning prompt" className="code-area" readOnly value={prompt}/><button className="primary" onClick={copy}><Clipboard size={17}/> Copy prompt</button></div>}
     {message && <p className="notice" role="status">{message}</p>}
   </section>
 }

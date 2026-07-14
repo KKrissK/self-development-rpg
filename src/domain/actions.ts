@@ -34,7 +34,8 @@ export function addQuest(state: AppState, quest: NewQuest): AppState {
     priority: quest.priority,
     status: quest.status,
     xp: goalXpForPriority(quest.priority),
-    skillId: quest.skillId,
+    skillId: quest.skillId ?? quest.skillIds?.[0],
+    skillIds: quest.skillIds ?? (quest.skillId ? [quest.skillId] : []),
     resourceIds: quest.resourceIds ?? [],
     dueDate: quest.dueDate,
   }
