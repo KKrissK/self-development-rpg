@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'Untitled — Your personal command center',
+        name: 'Untitled — Personal Operating System',
         short_name: 'Untitled',
-        description: 'A private, game-like career and self-development command center.',
+        description: 'A private, local-first personal operating system for skills, goals, learning, career, and growth.',
         theme_color: '#111310',
         background_color: '#111310',
         display: 'standalone',

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { createId } from '../../domain/id'
 import type { AppState, CvVariant, IncomeSource, KnowledgeNote, LearningResource, Quest, Skill } from '../../domain/model'
 
 const safeUrl = z.string().max(1000).refine((value) => !value || /^https?:\/\//i.test(value), 'Only HTTP(S) links are supported.')
@@ -39,7 +40,7 @@ export function parseBulkImport(raw: string): BulkParseResult {
   } catch { return { status: 'invalid', reason: 'Import is not valid JSON.' } }
 }
 
-export function applyBulkImport(state: AppState, raw: string, makeId: () => string = () => crypto.randomUUID()): AppState {
+export function applyBulkImport(state: AppState, raw: string, makeId: () => string = createId): AppState {
   const parsed = parseBulkImport(raw)
   if (parsed.status === 'invalid') throw new Error(parsed.reason)
   const data = parsed.data

@@ -5,6 +5,20 @@ export type ResourceKind = 'book' | 'video' | 'course' | 'article' | 'podcast' |
 export type ResourceStatus = 'queued' | 'in-progress' | 'completed'
 export type CvLanguage = 'English' | 'Hungarian' | 'Other'
 
+export interface SkillAssessmentDetails {
+  summary: string
+  strengths: string[]
+  gaps: string[]
+}
+
+export interface CvAttachment {
+  id: string
+  fileName: string
+  mimeType: string
+  size: number
+  storedAt: string
+}
+
 export interface Profile {
   id: string
   name: string
@@ -24,6 +38,7 @@ export interface Skill {
   targetLevel: number
   status: SkillStatus
   evidence: string
+  assessment?: SkillAssessmentDetails
 }
 
 export interface Quest {
@@ -35,8 +50,10 @@ export interface Quest {
   status: QuestStatus
   xp: number
   skillId?: string
+  resourceIds?: string[]
   dueDate?: string
   completedAt?: string
+  xpAwardedAt?: string
 }
 
 export interface LearningResource {
@@ -77,6 +94,7 @@ export interface CvVariant {
   language: CvLanguage
   status: 'draft' | 'ready' | 'sent' | 'archived'
   fileName: string
+  attachment?: CvAttachment
   notes: string
   updatedAt: string
 }
@@ -115,4 +133,4 @@ export interface AppState {
   theme: 'light' | 'dark'
 }
 
-export type NewQuest = Pick<Quest, 'title' | 'priority' | 'status' | 'xp'> & Partial<Pick<Quest, 'notes' | 'skillId' | 'dueDate'>>
+export type NewQuest = Pick<Quest, 'title' | 'priority' | 'status' | 'xp'> & Partial<Pick<Quest, 'notes' | 'skillId' | 'resourceIds' | 'dueDate'>>

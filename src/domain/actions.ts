@@ -1,6 +1,7 @@
-import type { AppState, NewQuest, Quest } from './model'
+import type { AppState, NewQuest, Quest, QuestStatus } from './model'
+import { createId } from './id'
 
-const id = () => crypto.randomUUID()
+const id = createId
 const now = () => new Date().toISOString()
 
 export function createInitialState(input: { name: string; title: string }): AppState {
@@ -31,6 +32,7 @@ export function addQuest(state: AppState, quest: NewQuest): AppState {
     status: quest.status,
     xp: quest.xp,
     skillId: quest.skillId,
+    resourceIds: quest.resourceIds ?? [],
     dueDate: quest.dueDate,
   }
   return { ...state, quests: [item, ...state.quests] }
@@ -39,11 +41,27 @@ export function addQuest(state: AppState, quest: NewQuest): AppState {
 export function completeQuest(state: AppState, questId: string): AppState {
   const quest = state.quests.find((item) => item.id === questId)
   if (!quest || quest.status === 'done') return state
-  const quests = state.quests.map((item) => item.id === questId ? { ...item, status: 'done' as const, completedAt: now() } : item)
+  const completedAt = now()
+  const rewardWasAlreadyClaimed = Boolean(quest.xpAwardedAt || quest.completedAt)
+  const quests = state.quests.map((item) => item.id === questId ? { ...item, status: 'done' as const, completedAt, xpAwardedAt: item.xpAwardedAt ?? item.completedAt ?? completedAt } : item)
+  if (rewardWasAlreadyClaimed) return { ...state, quests }
   const profiles = state.profiles.map((profile) => {
     if (profile.id !== quest.profileId) return profile
     const xp = profile.xp + quest.xp
     return { ...profile, xp, level: Math.floor(xp / 100) + 1 }
   })
   return { ...state, quests, profiles }
+}
+
+export function setQuestStatus(state: AppState, questId: string, status: QuestStatus): AppState {
+  if (status === 'done') return completeQuest(state, questId)
+  return {
+    ...state,
+    quests: state.quests.map((quest) => quest.id === questId ? {
+      ...quest,
+      status,
+      xpAwardedAt: quest.xpAwardedAt ?? quest.completedAt,
+      completedAt: undefined,
+    } : quest),
+  }
 }

@@ -4,7 +4,7 @@ import { buildCoachPrompt, parseCoachResponse } from './coachExchange'
 const context = {
   profile: { name: 'Kris', title: 'Builder' },
   skills: [{ name: 'TypeScript', level: 5, targetLevel: 8 }],
-  currentQuests: ['Ship alpha'],
+  currentGoals: ['Ship alpha'],
 }
 
 describe('AI coach exchange', () => {
@@ -19,7 +19,7 @@ describe('AI coach exchange', () => {
     const valid = JSON.stringify({
       schemaVersion: 1,
       summary: 'Focus your next week.',
-      recommendations: [{ title: 'Build one component', rationale: 'Creates evidence', nextStep: 'Work for 45 minutes', impact: 'high', kind: 'quest', xp: 20 }],
+      recommendations: [{ title: 'Build one component', rationale: 'Creates evidence', nextStep: 'Work for 45 minutes', impact: 'high', kind: 'goal', xp: 20 }],
     })
     expect(parseCoachResponse(valid).status).toBe('valid')
     expect(parseCoachResponse('not json').status).toBe('invalid')

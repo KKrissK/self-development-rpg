@@ -1,19 +1,19 @@
-import { BookOpen, Bot, BriefcaseBusiness, CircleUserRound, Command, Ellipsis, ListChecks, Moon, Sun, TrendingUp } from 'lucide-react'
+import { BookOpen, Bot, BriefcaseBusiness, CircleUserRound, Ellipsis, LayoutDashboard, ListChecks, Moon, Sun, TrendingUp } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { brand } from '../config/brand'
 import { useWorkspace } from '../app/AppState'
 
-export type PageId = 'command' | 'skills' | 'quests' | 'library' | 'career' | 'coach' | 'profile'
-const items: { id: PageId; label: string; icon: typeof Command }[] = [
-  { id: 'command', label: 'Command', icon: Command },
+export type PageId = 'dashboard' | 'skills' | 'goals' | 'library' | 'career' | 'coach' | 'profile'
+const items: { id: PageId; label: string; icon: typeof LayoutDashboard }[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'skills', label: 'Skills', icon: TrendingUp },
-  { id: 'quests', label: 'Quests', icon: ListChecks },
+  { id: 'goals', label: 'Goals', icon: ListChecks },
   { id: 'library', label: 'Library', icon: BookOpen },
   { id: 'career', label: 'Career', icon: BriefcaseBusiness },
   { id: 'coach', label: 'AI Coach', icon: Bot },
   { id: 'profile', label: 'Profile', icon: CircleUserRound },
 ]
-const primaryMobile = items.filter(({ id }) => ['command', 'skills', 'quests', 'career'].includes(id))
+const primaryMobile = items.filter(({ id }) => ['dashboard', 'skills', 'goals', 'career'].includes(id))
 
 export function Shell({ page, setPage, children }: { page: PageId; setPage: (page: PageId) => void; children: ReactNode }) {
   const { state, update, storageWarning } = useWorkspace()
@@ -24,7 +24,7 @@ export function Shell({ page, setPage, children }: { page: PageId; setPage: (pag
   const toggleTheme = () => update((s) => ({ ...s, theme: s.theme === 'dark' ? 'light' : 'dark' }))
   return <div className="app-shell">
     <aside className="sidebar">
-      <button className="brand" onClick={() => navigate('command')} aria-label={`${brand.productName} command page`}><span className="brand-mark">{brand.mark}</span><span><b>{brand.productName}</b><small>{brand.eyebrow}</small></span></button>
+      <button className="brand" onClick={() => navigate('dashboard')} aria-label={`${brand.productName} dashboard`}><span className="brand-mark">{brand.mark}</span><span><b>{brand.productName}</b><small>{brand.eyebrow}</small></span></button>
       <nav aria-label="Main navigation">{items.map(({ id, label, icon: Icon }) => <button key={id} aria-current={page === id ? 'page' : undefined} className={page === id ? 'nav-item active' : 'nav-item'} onClick={() => navigate(id)}><Icon size={18}/><span>{label}</span></button>)}</nav>
       <div className="sidebar-bottom">
         <button className="theme-toggle" onClick={toggleTheme}>{state.theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>} {state.theme === 'dark' ? 'Light mode' : 'Dark mode'}</button>
