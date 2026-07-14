@@ -9,6 +9,7 @@ import { LibraryPage } from './features/library/LibraryPage'
 import { Dashboard } from './features/dashboard/Dashboard'
 import { LandingPage } from './features/landing/LandingPage'
 import './styles.css'
+import './redesign.css'
 
 function Workspace() {
   const { state } = useWorkspace()

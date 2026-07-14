@@ -9,11 +9,12 @@ Updated: 2026-07-14
 ## Implemented and verified
 
 - Local-first, account-free character workspace
-- Responsive newcomer landing page with product previews, feature story, privacy explanation, and setup transition
+- Responsive personal-studio landing page with interactive light/dark product preview, feature story, privacy explanation, and setup transition
+- Responsive personal-studio application design with floating grouped navigation, attention-first Dashboard, fluid transitions, and polished dark/light atmospheres
 - Interactive Dashboard with source-page navigation, quick Goal controls, and learning-status updates
 - Character profile, level, and XP
 - Skills with levels, targets, status, experience, and expandable structured assessment profiles
-- Complete skill editing for name, category, current/target level, status, experience, assessment summary, demonstrated strengths, and growth areas
+- Complete skill editing for name, category, current/target level, status, experience, and an optional manually authored structured profile with assessment summary, demonstrated strengths, and growth areas
 - Focused Now/Next/Later Goal planner with editable details, priorities, dates, skill and Library links, permanently single-claim XP, and bounded/searchable completion history
 - Outcome-aware Library for books, videos, courses, articles, podcasts, and other resources, with Goal links, active-support filters, and completed-Goal impact markers
 - Income sources and monthly target/expense planning

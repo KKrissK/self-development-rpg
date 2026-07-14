@@ -2,7 +2,9 @@
 
 A local-first, mobile-friendly PWA for managing your character, skills, Goals, learning Library, income plan, CV variants, and portable AI coaching workflow.
 
-First-time visitors enter through a responsive product landing page with code-native previews of the Dashboard, connected Goals and Library, structured Skills, the portable AI workflow, and local-first privacy model. Creating a workspace continues into character setup; browsers with an existing workspace still open directly to the Dashboard.
+The application UI uses a responsive "personal studio" design: grouped floating navigation, an attention-first Dashboard, fluid page transitions, contextual color, and distinct dark/light atmospheres. The underlying workflows and browser-local persistence remain unchanged.
+
+First-time visitors enter through a responsive personal-studio landing page with an interactive light/dark Dashboard preview, connected Goals and Library, structured Skills, the portable AI workflow, and local-first privacy model. Creating a workspace continues into character setup; browsers with an existing workspace still open directly to the Dashboard.
 
 Goals use focused Now/Next/Later planning lanes, editable details, linked Library support, one-time XP rewards, and a paged completion history so finished work does not create an endless board column.
 

@@ -27,6 +27,7 @@ const listFromField = (value: FormDataEntryValue | null) => String(value ?? '').
 
 function SkillEditor({ skill, onSave, onCancel }: { skill?: Skill; onSave: (draft: SkillDraft) => void; onCancel: () => void }) {
   const profile = skillProfile(skill)
+  const [includeAssessment, setIncludeAssessment] = useState(Boolean(profile.assessment))
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
@@ -37,7 +38,7 @@ function SkillEditor({ skill, onSave, onCancel }: { skill?: Skill; onSave: (draf
       targetLevel: Number(form.get('target')),
       status: form.get('status') as Skill['status'],
       evidence: String(form.get('evidence')).trim(),
-      assessment: profile.assessment ? {
+      assessment: includeAssessment ? {
         summary: String(form.get('assessmentSummary')).trim(),
         strengths: listFromField(form.get('strengths')),
         gaps: listFromField(form.get('gaps')),
@@ -52,7 +53,8 @@ function SkillEditor({ skill, onSave, onCancel }: { skill?: Skill; onSave: (draf
     <label>Target level (1–10)<input name="target" type="number" min="1" max="10" defaultValue={skill?.targetLevel ?? 7}/></label>
     <label>Status<select name="status" defaultValue={skill?.status ?? 'learning'}><option value="learning">Learning</option><option value="practicing">Practicing</option><option value="proven">Proven</option></select></label>
     <label className="wide">Experience<textarea name="evidence" maxLength={1000} defaultValue={profile.evidence} placeholder="Work you handled, projects, outcomes, or certificates…"/></label>
-    {profile.assessment && <fieldset className="assessment-edit-fields"><legend>Assessment profile</legend><label className="assessment-summary-field">Assessment summary<textarea name="assessmentSummary" required maxLength={1000} defaultValue={profile.assessment.summary}/></label><label>Demonstrated strengths<textarea name="strengths" maxLength={1000} defaultValue={profile.assessment.strengths.join('\n')} placeholder="One strength per line"/></label><label>Growth areas<textarea name="gaps" maxLength={1000} defaultValue={profile.assessment.gaps.join('\n')} placeholder="One growth area per line"/></label></fieldset>}
+    <label className="assessment-profile-toggle"><input aria-label="Include structured skill profile" type="checkbox" checked={includeAssessment} onChange={(event) => setIncludeAssessment(event.target.checked)}/><span><b>Structured skill profile</b><small>Optionally add your own summary, demonstrated strengths, and growth areas.</small></span></label>
+    {includeAssessment && <fieldset className="assessment-edit-fields"><legend>Structured profile</legend><label className="assessment-summary-field">Assessment summary<textarea name="assessmentSummary" required maxLength={1000} defaultValue={profile.assessment?.summary ?? ''} placeholder="Summarize the current level, independent ability, and meaningful limitations."/></label><label>Demonstrated strengths<textarea name="strengths" maxLength={1000} defaultValue={profile.assessment?.strengths.join('\n') ?? ''} placeholder="One demonstrated strength per line"/></label><label>Growth areas<textarea name="gaps" maxLength={1000} defaultValue={profile.assessment?.gaps.join('\n') ?? ''} placeholder="One concrete growth area per line"/></label></fieldset>}
     <div className="form-actions"><button className="primary" type="submit">{skill ? 'Save changes' : 'Save skill'}</button><button className="secondary" type="button" onClick={onCancel}>Cancel</button></div>
   </form>
 }
@@ -85,7 +87,7 @@ export function SkillsPage() {
   const { state, update } = useWorkspace()
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [addMethod, setAddMethod] = useState<'manual' | 'ai-create' | 'ai-assess'>('manual')
+  const [addMethod, setAddMethod] = useState<'manual' | 'ai-create' | 'ai-assess'>('ai-assess')
   if (!state) return null
   const profileId = state.activeProfileId
 
@@ -101,7 +103,7 @@ export function SkillsPage() {
 
   return <div className="page">
     <header className="page-head"><div><p className="eyebrow">CAPABILITY INVENTORY</p><h1>Skills</h1><p>Track ability through real experience—not vibes.</p></div><button className="primary" onClick={() => { setAdding(!adding); setEditingId(null) }}><Plus size={18}/> {adding ? 'Close add' : 'Add skill'}</button></header>
-    {adding && <section className="add-workbench"><div className="add-method-switch three" role="tablist" aria-label="Skill add method"><button role="tab" aria-selected={addMethod === 'manual'} className={addMethod === 'manual' ? 'active' : ''} onClick={() => setAddMethod('manual')}><Plus size={17}/><span><b>Manual</b><small>Enter the level yourself</small></span></button><button role="tab" aria-selected={addMethod === 'ai-create'} className={addMethod === 'ai-create' ? 'active' : ''} onClick={() => setAddMethod('ai-create')}><Sparkles size={17}/><span><b>AI generate</b><small>Create one or several skills</small></span></button><button role="tab" aria-selected={addMethod === 'ai-assess'} className={addMethod === 'ai-assess' ? 'active' : ''} onClick={() => setAddMethod('ai-assess')}><Check size={17}/><span><b>AI assessment</b><small>Interview and estimate one level</small></span></button></div>{addMethod === 'manual' ? <SkillEditor onSave={add} onCancel={() => setAdding(false)}/> : <AiImportPanel key={addMethod} target="skills" mode={addMethod === 'ai-assess' ? 'assess' : 'create'}/>}</section>}
+    {adding && <section className="add-workbench"><div className="add-method-switch three" role="tablist" aria-label="Skill add method"><button role="tab" aria-selected={addMethod === 'ai-assess'} className={addMethod === 'ai-assess' ? 'active' : ''} onClick={() => setAddMethod('ai-assess')}><Check size={17}/><span><b>AI assessment</b><small>Interview one skill and estimate its level</small></span></button><button role="tab" aria-selected={addMethod === 'manual'} className={addMethod === 'manual' ? 'active' : ''} onClick={() => setAddMethod('manual')}><Plus size={17}/><span><b>Manual</b><small>Add a skill and optional profile yourself</small></span></button><button role="tab" aria-selected={addMethod === 'ai-create'} className={addMethod === 'ai-create' ? 'active' : ''} onClick={() => setAddMethod('ai-create')}><Sparkles size={17}/><span><b>AI generate</b><small>Create several skills from one description</small></span></button></div>{addMethod === 'manual' ? <SkillEditor onSave={add} onCancel={() => setAdding(false)}/> : <AiImportPanel key={addMethod} target="skills" mode={addMethod === 'ai-assess' ? 'assess' : 'create'}/>}</section>}
     <div className="card-grid skills-grid">{state.skills.map((skill) => editingId === skill.id
       ? <SkillEditor key={skill.id} skill={skill} onSave={(draft) => edit(skill.id, draft)} onCancel={() => setEditingId(null)}/>
       : <article className="panel skill-card" key={skill.id}><div className="panel-title"><div><span className="kind">{skill.category || 'General'}</span><h2>{skill.name}</h2></div><b className="skill-level">{skill.level}<small>/10</small></b></div><div className="skill-level-context"><span>Current level {skill.level}</span><span>Target {skill.targetLevel}</span></div><div className="meter"><i style={{ width: `${skill.level * 10}%` }}/><em style={{ left: `${skill.targetLevel * 10}%` }}/></div><SkillProfile skill={skill}/><div className="row-actions"><select aria-label={`${skill.name} status`} value={skill.status} onChange={(event) => update((current) => ({ ...current, skills: current.skills.map((item) => item.id === skill.id ? { ...item, status: event.target.value as Skill['status'] } : item) }))}><option value="learning">Learning</option><option value="practicing">Practicing</option><option value="proven">Proven</option></select><div className="skill-card-actions"><button className="secondary" onClick={() => { setEditingId(skill.id); setAdding(false) }}>Edit</button><button className="icon-btn" aria-label={`Delete ${skill.name}`} onClick={() => update((current) => ({ ...current, skills: current.skills.filter((item) => item.id !== skill.id) }))}><Trash2 size={17}/></button></div></div></article>)}</div>
