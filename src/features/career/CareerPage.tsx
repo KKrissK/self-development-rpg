@@ -4,9 +4,10 @@ import { uid, useWorkspace } from '../../app/AppState'
 import type { CvVariant, IncomeSource } from '../../domain/model'
 import { CV_FILE_ACCEPT, validateCvFile } from '../../platform/storage/cvAttachmentRepository'
 import { CvTuningPanel } from './CvTuningPanel'
+import { useI18n } from '../../i18n/I18n'
 
 const today = () => new Date().toISOString()
-const money = (amount: number, currency: string) => new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
+const money = (amount: number, currency: string, locale: string) => new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
 const formatFileSize = (bytes: number) => bytes < 1_000_000 ? `${Math.max(1, Math.round(bytes / 1_000))} KB` : `${(bytes / 1_000_000).toFixed(1)} MB`
 const formatAmount = (value: string | number) => {
   const digits = String(value).replace(/\D/g, '').replace(/^0+(?=\d)/, '')
@@ -27,6 +28,7 @@ function MoneyAmountField({ label, value, currency, onCommit }: { label: string;
 
 export function CareerPage() {
   const { state, update, attachments } = useWorkspace()
+  const { locale } = useI18n()
   const [tab, setTab] = useState<'money' | 'cvs'>('money')
   const [fileMessage, setFileMessage] = useState('')
   const [busyCvId, setBusyCvId] = useState('')
@@ -138,9 +140,9 @@ export function CareerPage() {
   }
 
   return <div className="page"><header className="page-head"><div><p className="eyebrow">CAREER & RESOURCES</p><h1>Career</h1><p>See the work, money, and application assets behind your next move.</p></div></header><div className="tabs"><button className={tab === 'money' ? 'active' : ''} onClick={() => setTab('money')}>Income & plan</button><button className={tab === 'cvs' ? 'active' : ''} onClick={() => setTab('cvs')}>CV vault</button></div>{tab === 'money' ? <>
-    <div className="metric-grid"><div className="metric"><span>Current monthly income</span><b>{money(total, currency)}</b><small>Sum of active income sources below</small></div><MoneyAmountField label="Monthly income target" value={state.moneyPlan.monthlyTarget} currency={currency} onCommit={(value) => update((current) => ({ ...current, moneyPlan: { ...current.moneyPlan, monthlyTarget: value } }))}/><MoneyAmountField label="Monthly expenses" value={state.moneyPlan.monthlyExpenses} currency={currency} onCommit={(value) => update((current) => ({ ...current, moneyPlan: { ...current.moneyPlan, monthlyExpenses: value } }))}/></div>
+    <div className="metric-grid"><div className="metric"><span>Current monthly income</span><b>{money(total, currency, locale)}</b><small>Sum of active income sources below</small></div><MoneyAmountField label="Monthly income target" value={state.moneyPlan.monthlyTarget} currency={currency} onCommit={(value) => update((current) => ({ ...current, moneyPlan: { ...current.moneyPlan, monthlyTarget: value } }))}/><MoneyAmountField label="Monthly expenses" value={state.moneyPlan.monthlyExpenses} currency={currency} onCommit={(value) => update((current) => ({ ...current, moneyPlan: { ...current.moneyPlan, monthlyExpenses: value } }))}/></div>
     <form className="panel income-add-form" autoComplete="off" onSubmit={addIncome}><label className="income-name-field">Income source name<input name="incomeSourceName" required maxLength={120} autoComplete="off" placeholder="What is this income source called?"/></label><label>Income type<input name="incomeSourceType" maxLength={80} autoComplete="off" placeholder="Salary, freelance, business…"/></label><label>Monthly amount ({currency})<input name="incomeSourceAmount" required type="text" inputMode="numeric" pattern="[0-9,]+" autoComplete="off" placeholder="0" onInput={(event) => { event.currentTarget.value = formatAmount(event.currentTarget.value) }}/></label><button className="primary"><Plus size={18}/> Add income source</button></form>
-    <div className="list-panel panel">{state.incomeSources.map((item) => <div className="income-row" key={item.id}><div><b>{item.name}</b><small>{item.type}</small></div><strong>{money(item.monthlyAmount, item.currency)}</strong><button className="icon-btn" aria-label={`Delete income source ${item.name}`} onClick={() => update((current) => ({ ...current, incomeSources: current.incomeSources.filter((income) => income.id !== item.id) }))}><Trash2 size={17}/></button></div>)}</div>
+    <div className="list-panel panel">{state.incomeSources.map((item) => <div className="income-row" key={item.id}><div><b>{item.name}</b><small>{item.type}</small></div><strong>{money(item.monthlyAmount, item.currency, locale)}</strong><button className="icon-btn" aria-label={`Delete income source ${item.name}`} onClick={() => update((current) => ({ ...current, incomeSources: current.incomeSources.filter((income) => income.id !== item.id) }))}><Trash2 size={17}/></button></div>)}</div>
   </> : <>
     <form className="inline-form cv-add-form" onSubmit={addCv}><label>CV name<input name="name" required placeholder="Name this CV variant"/></label><label>Employer<input name="employer"/></label><label>Role<input name="role"/></label><label>Language<select name="language"><option>English</option><option>Hungarian</option><option>Other</option></select></label><label className="wide">CV file <span className="field-guidance">Optional · PDF, Word, ODT, RTF, or TXT · up to 20 MB</span><input name="cvFile" type="file" accept={CV_FILE_ACCEPT}/></label><button className="primary"><Plus size={18}/> Add to vault</button></form>
     {fileMessage && <p className="notice" role="status">{fileMessage}</p>}

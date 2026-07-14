@@ -4,9 +4,11 @@ import { useWorkspace } from '../../app/AppState'
 import type { CvVariant } from '../../domain/model'
 import { copyText } from '../../platform/clipboard'
 import { buildCvTuningPrompt } from './cvTuning'
+import { useI18n } from '../../i18n/I18n'
 
 export function CvTuningPanel({ cv, onClose }: { cv: CvVariant; onClose: () => void }) {
   const { state } = useWorkspace()
+  const { language } = useI18n()
   const [target, setTarget] = useState(cv.role)
   const [instructions, setInstructions] = useState('')
   const [prompt, setPrompt] = useState('')
@@ -20,7 +22,8 @@ export function CvTuningPanel({ cv, onClose }: { cv: CvVariant; onClose: () => v
   if (!state || !context) return null
 
   function generate() {
-    setPrompt(buildCvTuningPrompt({ profile: context!.profile, cv, skills: context!.skills, target, instructions }))
+    const generated = buildCvTuningPrompt({ profile: context!.profile, cv, skills: context!.skills, target, instructions })
+    setPrompt(language === 'hu' ? `${generated}\n\nIMPORTANT LANGUAGE INSTRUCTION: Write the rewritten CV and all explanations in polished, natural Hungarian unless the target vacancy explicitly requires another language.` : generated)
     setMessage(`Prompt ready with ${context!.skills.length} skill profile${context!.skills.length === 1 ? '' : 's'}.`)
   }
 
@@ -30,11 +33,11 @@ export function CvTuningPanel({ cv, onClose }: { cv: CvVariant; onClose: () => v
   }
 
   return <section className="panel cv-tuning-panel">
-    <header className="cv-tuning-head"><div><p className="eyebrow">SKILL-AWARE CV TUNING</p><h2>Tune {cv.name}</h2><p>The prompt carries your recorded experience into the rewrite without exposing private skill scores in the finished CV.</p></div><button className="icon-btn" aria-label="Close CV tuning" onClick={onClose}><X size={18}/></button></header>
+    <header className="cv-tuning-head"><div><p className="eyebrow">REWRITE WITH AI</p><h2>Tune {cv.name}</h2><p>Enter the role you want. The generated prompt will tell an AI how to rewrite this CV using your saved experience.</p></div><button className="icon-btn" aria-label="Close CV tuning" onClick={onClose}><X size={18}/></button></header>
     <div className="cv-tuning-context"><span><FileText size={16}/><b>{cv.attachment?.fileName ?? (cv.fileName || 'No CV file attached')}</b></span><span><Sparkles size={16}/><b>{context.skills.length} skills included</b></span></div>
     <div className="cv-tuning-fields"><label>Target role or job description<span className="field-guidance">Paste the vacancy, or describe the kind of role this CV should target.</span><textarea value={target} onChange={(event) => setTarget(event.target.value)} maxLength={12_000} placeholder="Paste the job description or describe the target roleâ€¦"/></label><label>Editing preferences <span className="field-guidance">Optional: length, tone, format, emphasis, or details to preserve.</span><textarea value={instructions} onChange={(event) => setInstructions(event.target.value)} maxLength={2_000} placeholder="For example: keep it to two pages and emphasize automation impact."/></label></div>
-    <button className="primary" onClick={generate}><Sparkles size={17}/> Generate tuning prompt</button>
-    {prompt && <div className="cv-tuning-output"><div><h3>Use with any AI</h3><p>Copy this prompt, then attach the CV file or paste its complete text in the same conversation.</p></div><textarea aria-label="Generated CV tuning prompt" className="code-area" readOnly value={prompt}/><button className="primary" onClick={copy}><Clipboard size={17}/> Copy tuning prompt</button></div>}
+    <button className="primary" onClick={generate}><Sparkles size={17}/> Create AI prompt</button>
+    {prompt && <div className="cv-tuning-output"><div><h3>Send the prompt and your CV to an AI</h3><p>Click Copy prompt. Open ChatGPT or another AI, paste the prompt, and attach your CV file. If you cannot attach it, paste the full CV text after the prompt.</p></div><textarea aria-label="Generated CV tuning prompt" className="code-area" readOnly value={prompt}/><button className="primary" onClick={copy}><Clipboard size={17}/> Copy prompt</button></div>}
     {message && <p className="notice" role="status">{message}</p>}
   </section>
 }

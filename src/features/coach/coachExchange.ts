@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { extractJsonObject } from '../../platform/json'
 
 export interface CoachContext {
   profile: { name: string; title: string; bio?: string }
@@ -87,8 +88,7 @@ Return 1-8 recommendations. Include Library items when a specific resource would
 export function parseCoachResponse(raw: string): ParseResult {
   if (raw.length > 50_000) return { status: 'invalid', reason: 'Response is too large.' }
   try {
-    const cleaned = raw.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)?.[1] ?? raw.trim()
-    const parsed = responseSchema.safeParse(JSON.parse(cleaned))
+    const parsed = responseSchema.safeParse(JSON.parse(extractJsonObject(raw)))
     return parsed.success ? { status: 'valid', data: parsed.data } : { status: 'invalid', reason: parsed.error.issues[0]?.message ?? 'Response did not match the required format.' }
   } catch { return { status: 'invalid', reason: 'Response is not valid JSON.' } }
 }

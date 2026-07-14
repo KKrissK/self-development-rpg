@@ -6,12 +6,14 @@ import { priorityForGoalDifficulty } from '../../domain/goalRewards'
 import type { LearningResource } from '../../domain/model'
 import { copyText } from '../../platform/clipboard'
 import { buildCoachPrompt, parseCoachResponse, type CoachResponse } from './coachExchange'
+import { useI18n } from '../../i18n/I18n'
 
 const today = () => new Date().toISOString()
 const normalized = (value: string) => value.trim().toLocaleLowerCase()
 
 export function CoachPage() {
   const { state, update } = useWorkspace()
+  const { language } = useI18n()
   const [raw, setRaw] = useState('')
   const [preview, setPreview] = useState<CoachResponse | null>(null)
   const [message, setMessage] = useState('')
@@ -47,9 +49,9 @@ export function CoachPage() {
           supportingLibraryItems: resources.filter((resource) => goal.resourceIds?.includes(resource.id)).map((resource) => resource.title),
         })),
         currentLibrary: resources.map((resource) => ({ title: resource.title, kind: resource.kind, status: resource.status, relatedSkill: skillName(resource.skillId) })),
-      }),
+      }) + (language === 'hu' ? '\n\nIMPORTANT LANGUAGE INSTRUCTION: Write every human-readable value in natural Hungarian. Keep JSON property names and enum values exactly as specified.' : ''),
     }
-  }, [state])
+  }, [language, state])
 
   if (!state || !context) return null
 
@@ -104,9 +106,9 @@ export function CoachPage() {
 
   const libraryCount = preview?.recommendations.filter((item) => item.kind === 'library').length ?? 0
   return <div className="page coach-page">
-    <header className="page-head"><div><p className="eyebrow">PORTABLE AI WORKFLOW</p><h1>AI Coach</h1><p>Turn your real skills and active Goals into grounded next steps and useful Library material.</p></div></header>
+    <header className="page-head"><div><p className="eyebrow">COPY, ASK, IMPORT</p><h1>AI Coach</h1><p>Send your workspace context to an AI, then bring its recommendations back here.</p></div></header>
     <section className="coach-context-strip"><span><Sparkles size={15}/><b>{context.profile.name}</b></span><span>{state.skills.filter((skill) => skill.profileId === context.profile.id).length} skills</span><span>{state.quests.filter((goal) => goal.profileId === context.profile.id && goal.status !== 'done').length} active Goals</span><span>{state.resources.filter((resource) => resource.profileId === context.profile.id).length} Library items</span></section>
-    <div className="coach-grid"><section className="panel"><div className="step"><span>1</span><div><h2>Copy your connected context</h2><p>The prompt includes skill evidence, growth areas, active Goal details, and current Library titles so the AI can avoid generic or duplicate suggestions.</p></div></div><textarea aria-label="AI context prompt" className="code-area" readOnly value={context.prompt}/><button className="primary" onClick={copyPrompt}><Clipboard size={18}/> Copy context prompt</button></section><section className="panel"><div className="step"><span>2</span><div><h2>Paste the AI response</h2><p>The response can contain Goals, saved advice, and Library items connected to existing Goals and skills.</p></div></div><textarea aria-label="AI response JSON" className="code-area" value={raw} onChange={(event) => setRaw(event.target.value)} placeholder='{"schemaVersion":1,â€¦}'/><button className="secondary" disabled={!raw.trim()} onClick={validate}>Validate response</button></section></div>
+    <div className="coach-grid"><section className="panel"><div className="step"><span>1</span><div><h2>Ask an AI for recommendations</h2><p>Click Copy prompt. Open ChatGPT or another AI, start a new chat, paste the prompt, and send it unchanged.</p></div></div><textarea aria-label="AI context prompt" className="code-area" readOnly value={context.prompt}/><button className="primary" onClick={copyPrompt}><Clipboard size={18}/> Copy prompt</button></section><section className="panel"><div className="step"><span>2</span><div><h2>Paste the final answer here</h2><p>Copy the AI's final answer, paste the entire answer below, then click Check response. You can review everything before saving.</p></div></div><textarea aria-label="AI response JSON" className="code-area" value={raw} onChange={(event) => setRaw(event.target.value)} placeholder="Paste the AI's final answer here"/><button className="secondary" disabled={!raw.trim()} onClick={validate}>Check response</button></section></div>
     {message && <p className="notice" role="status">{message}</p>}
     {state.advice.filter((item) => item.profileId === context.profile.id).length > 0 && <section className="panel preview"><p className="eyebrow">SAVED ADVICE</p>{state.advice.filter((item) => item.profileId === context.profile.id).map((item) => <article key={item.id}><span className={`status ${item.impact}`}>{item.impact}</span><div><b>{item.title}</b><p>{item.rationale}</p><small>Next: {item.nextStep}</small></div></article>)}</section>}
     {preview && <section className="panel preview coach-preview"><p className="eyebrow">IMPORT PREVIEW</p><h2>{preview.summary}</h2>{preview.recommendations.map((item, index) => <article key={`${item.title}-${index}`}><span className={item.kind === 'library' ? 'coach-kind library' : `status ${item.impact}`}>{item.kind === 'library' ? <BookOpen size={14}/> : item.impact}</span><div><b>{item.title}</b><p>{item.rationale}</p><small>Next: {item.nextStep}{item.kind === 'library' && item.supportsGoalTitle ? ` · Supports ${item.supportsGoalTitle}` : ''}</small></div></article>)}<button className="primary" aria-label={`Import ${preview.recommendations.length} items`} onClick={importItems}><Upload size={18}/> Import {preview.recommendations.length} recommendations{libraryCount ? ` · ${libraryCount} to Library` : ''}</button></section>}

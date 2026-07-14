@@ -3,6 +3,7 @@ import { Check, ChevronDown, Clipboard, ClipboardPaste, Sparkles, Upload } from 
 import { useWorkspace } from '../../app/AppState'
 import { copyText } from '../../platform/clipboard'
 import type { BulkImport } from '../bulk-import/bulkImport'
+import { useI18n } from '../../i18n/I18n'
 import {
   applyAiItemImport,
   applySkillAssessment,
@@ -30,8 +31,9 @@ function ItemPreview({ data, target }: { data: BulkImport; target: ItemTarget })
   return <>{data.resources.map((item, index) => <article key={`${item.title}-${index}`}><span className="kind">{item.kind}</span><div><b>{item.title}</b><p>{item.creator || 'Creator not specified'}</p><small>{item.notes || 'No notes.'}</small></div></article>)}</>
 }
 
-export function AiImportPanel({ target, mode, goalId }: { target: ItemTarget; mode: AiImportMode; goalId?: string }) {
+export function AiImportPanel({ target, mode, goalId, focusSkillId }: { target: ItemTarget; mode: AiImportMode; goalId?: string; focusSkillId?: string }) {
   const { state, update } = useWorkspace()
+  const { language } = useI18n()
   const [request, setRequest] = useState('')
   const [prompt, setPrompt] = useState('')
   const [raw, setRaw] = useState('')
@@ -46,13 +48,15 @@ export function AiImportPanel({ target, mode, goalId }: { target: ItemTarget; mo
     const existingSkills = skills.map((skill) => ({ name: skill.name, level: skill.level, targetLevel: skill.targetLevel, evidence: skill.evidence, assessmentSummary: skill.assessment?.summary, strengths: skill.assessment?.strengths, growthAreas: skill.assessment?.gaps }))
     const selected = goalId ? state.quests.find((goal) => goal.id === goalId && goal.profileId === profile.id) : undefined
     const linked = selected?.skillId ? skills.find((skill) => skill.id === selected.skillId) : undefined
+    const focusSkill = focusSkillId ? skills.find((skill) => skill.id === focusSkillId) : undefined
     return {
       profile: { title: profile.title, bio: profile.bio },
       existingSkills,
       existingGoals: state.quests.filter((goal) => goal.profileId === profile.id && goal.status !== 'done').map((goal) => ({ title: goal.title, status: goal.status, skillName: skills.find((skill) => skill.id === goal.skillId)?.name })),
       selectedGoal: selected ? { title: selected.title, notes: selected.notes, dueDate: selected.dueDate, linkedSkill: linked ? existingSkills.find((skill) => skill.name === linked.name) ?? null : null } : undefined,
+      focusSkill: focusSkill ? existingSkills.find((skill) => skill.name === focusSkill.name) : undefined,
     }
-  }, [goalId, state])
+  }, [focusSkillId, goalId, state])
 
   if (!state || !context) return null
   const assessment = mode === 'assess'
@@ -62,7 +66,8 @@ export function AiImportPanel({ target, mode, goalId }: { target: ItemTarget; mo
     if (target === 'tasks' && !selectedGoal) { setMessage('Select a Goal before asking AI to plan its Tasks.'); return }
     if (!request.trim() && target !== 'tasks') { setMessage(assessment ? 'Name the skill and add any useful context.' : `Describe the ${targetCopy[target].label} you want to create.`); return }
     const description = request.trim() || `Create a practical sequence of tasks for the selected Goal “${selectedGoal?.title}”.`
-    setPrompt(assessment ? buildSkillAssessmentPrompt(description, context!) : buildItemPrompt(target, description, context!))
+    const generated = assessment ? buildSkillAssessmentPrompt(description, context!) : buildItemPrompt(target, description, context!)
+    setPrompt(language === 'hu' ? `${generated}\n\nIMPORTANT LANGUAGE INSTRUCTION: Ask questions and write every human-readable value in natural Hungarian. Keep JSON property names and enum values exactly as specified.` : generated)
     setRaw('')
     setItemPreview(null)
     setAssessmentPreview(null)
@@ -115,15 +120,15 @@ export function AiImportPanel({ target, mode, goalId }: { target: ItemTarget; mo
   const itemCount = itemPreview ? itemPreview[target].length : 0
   return <div className="embedded-ai-flow">
     <section className="panel ai-request-panel">
-      <div className="step"><span>1</span><div><h2>{assessment ? 'Describe the skill to assess' : target === 'tasks' ? `Plan Tasks for ${selectedGoal?.title ?? 'a Goal'}` : `Describe the ${targetCopy[target].label} to add`}</h2><p>{assessment ? 'The AI commits to 4–8 progress-labelled questions, adapts to your answers, and includes a small practical check.' : target === 'tasks' ? selectedGoal?.linkedSkill ? `Your ${selectedGoal.linkedSkill.name} level, experience, strengths, and growth areas will be included automatically.` : 'This Goal has no linked existing skill, so the AI will start without assuming prior knowledge.' : 'Plain language is enough. Untitled prepares the technical format automatically.'}</p></div></div>
+      <div className="step"><span>1</span><div><h2>{assessment ? 'Describe one skill' : target === 'tasks' ? `Describe how you want to work on ${selectedGoal?.title ?? 'this Goal'}` : `Describe the ${targetCopy[target].label} you want`}</h2><p>{assessment ? 'Add your real experience and uncertainties. After you paste the prompt into an AI, answer its questions and complete its short practical check.' : target === 'tasks' ? 'Add your available time, deadline, preferred practice, and anything to avoid. Leave this blank to use the Goal as-is.' : 'Include enough detail for useful results. Then create the prompt you will send to an AI.'}</p></div></div>
       <label>{assessment ? 'Skill and context' : target === 'tasks' ? 'Extra planning preferences (optional)' : `What ${targetCopy[target].label} should the AI create?`}<span className="field-guidance">{assessment ? 'Enter exactly one skill. Describe where you use it, tasks you complete independently, concrete experience, and areas where you are uncertain.' : targetCopy[target].guidance}</span><textarea className="request-area" value={request} maxLength={5000} onChange={(event) => setRequest(event.target.value)} placeholder={assessment ? 'Describe one skill, how you use it, experience, and uncertainties.' : targetCopy[target].placeholder}/></label>
-      <button className="primary" onClick={generatePrompt}><Sparkles size={18}/> Generate copy-paste prompt</button>
+      <button className="primary" onClick={generatePrompt}><Sparkles size={18}/> Create AI prompt</button>
     </section>
 
-    {prompt && <div className="ai-exchange-grid"><section className="panel ai-prompt-ready"><div className="step"><span>2</span><div><h2>Use the prompt with any AI</h2><p>Copy it with the button and paste it into any AI. The AI will return its answer in the exact format Untitled needs, ready for one more copy and paste.</p></div></div><div className="ai-ready-callout"><Check size={18}/><span><b>No formatting work needed</b><small>The technical instructions are already included.</small></span></div><button className="primary" onClick={copyPrompt}><Clipboard size={18}/> Copy prompt</button><details className="ai-technical-details"><summary>Inspect generated prompt <ChevronDown size={15}/></summary><textarea aria-label="Generated AI prompt" className="code-area" readOnly value={prompt}/></details></section><section className="panel"><div className="step"><span>3</span><div><h2>Bring the AI result back</h2><p>Copy the AI’s final answer, then use Paste from clipboard. Nothing is saved until you validate and confirm the preview.</p></div></div><button className="secondary ai-paste-button" onClick={() => void pasteResult()}><ClipboardPaste size={18}/> Paste from clipboard</button><textarea aria-label="AI response JSON" className="code-area" value={raw} onChange={(event) => setRaw(event.target.value)} placeholder="The AI result will appear here…"/><button className="secondary" disabled={!raw.trim()} onClick={validate}>Validate & preview</button></section></div>}
+    {prompt && <div className="ai-exchange-grid"><section className="panel ai-prompt-ready"><div className="step"><span>2</span><div><h2>Copy this prompt into an AI</h2><p>Click Copy prompt. Open ChatGPT or another AI, start a new chat, paste the prompt, and follow any questions it asks.</p></div></div><div className="ai-ready-callout"><Check size={18}/><span><b>Send the whole prompt unchanged</b><small>It already tells the AI which response format to use.</small></span></div><button className="primary" onClick={copyPrompt}><Clipboard size={18}/> Copy prompt</button><details className="ai-technical-details"><summary>View prompt text <ChevronDown size={15}/></summary><textarea aria-label="Generated AI prompt" className="code-area" readOnly value={prompt}/></details></section><section className="panel"><div className="step"><span>3</span><div><h2>Paste the AI's final answer here</h2><p>In the AI chat, copy only its final answer. Return here, paste it below, then click Check response.</p></div></div><button className="secondary ai-paste-button" onClick={() => void pasteResult()}><ClipboardPaste size={18}/> Paste AI answer</button><textarea aria-label="AI response JSON" className="code-area" value={raw} onChange={(event) => setRaw(event.target.value)} placeholder="Paste the AI's final answer here"/><button className="secondary" disabled={!raw.trim()} onClick={validate}>Check response</button></section></div>}
 
     {message && <p className="notice" role="status">{message}</p>}
-    {itemPreview && <section className="panel preview ai-import-preview"><p className="eyebrow">IMPORT PREVIEW</p><h2>{itemCount} {targetCopy[target].label} ready</h2><ItemPreview data={itemPreview} target={target}/><button className="primary" onClick={importItems}><Upload size={18}/> Import {itemCount} items</button></section>}
+    {itemPreview && <section className="panel preview ai-import-preview"><p className="eyebrow">REVIEW BEFORE SAVING</p><h2>{itemCount} {targetCopy[target].label} ready</h2><ItemPreview data={itemPreview} target={target}/><button className="primary" onClick={importItems}><Upload size={18}/> Save {itemCount} items</button></section>}
     {assessmentPreview && <section className="panel preview ai-import-preview assessment-preview"><p className="eyebrow">ASSESSMENT PREVIEW</p><h2>{assessmentPreview.skill.name}: level {assessmentPreview.skill.level}/10</h2><div className="assessment-preview-head"><b>{assessmentPreview.skill.category} · target {assessmentPreview.skill.targetLevel}</b></div><div className="assessment-preview-grid"><section><span className="skill-section-label">Assessment summary</span><p>{assessmentPreview.skill.assessmentSummary}</p></section><section><span className="skill-section-label">Experience</span><p>{assessmentPreview.skill.evidence || 'No concrete experience recorded.'}</p></section><section><span className="skill-section-label">Demonstrated strengths</span><ul>{assessmentPreview.skill.strengths.map((item) => <li key={item}>{item}</li>)}</ul></section><section><span className="skill-section-label">Growth areas</span><ul>{assessmentPreview.skill.gaps.map((item) => <li key={item}>{item}</li>)}</ul></section></div><p className="assessment-note">AI assessment is an estimate, not a credential. Keep the level only if the reasoning matches the experience.</p><button className="primary" onClick={importItems}><Upload size={18}/> Import assessed skill</button></section>}
   </div>
 }

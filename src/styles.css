@@ -59,3 +59,26 @@
 .ai-prompt-ready{display:flex;flex-direction:column}.ai-ready-callout{display:flex;align-items:center;gap:10px;margin:18px 0;padding:13px;border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line));border-radius:13px;background:color-mix(in srgb,var(--accent) 8%,var(--surface-2));color:var(--accent)}.ai-ready-callout b,.ai-ready-callout small{display:block}.ai-ready-callout small{margin-top:2px;color:var(--muted)}.ai-technical-details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}.ai-technical-details summary{display:flex;align-items:center;gap:6px;color:var(--muted);cursor:pointer;font-size:.7rem;font-weight:750}.ai-technical-details summary::marker{display:none}.ai-technical-details[open] summary svg{transform:rotate(180deg)}.ai-technical-details .code-area{margin-bottom:0}.ai-paste-button{width:100%;margin:18px 0 0}
 @media (max-width:900px){.goal-wide-card{grid-template-columns:1fr}.goal-wide-actions{grid-column:1}.task-goal-focus{grid-template-columns:1fr 1fr}.task-goal-focus>.secondary{grid-column:1/-1}.task-add-form{grid-template-columns:1fr 1fr}.task-add-form .task-title-field{grid-column:1/-1}}
 @media (max-width:680px){.goal-wide-card{padding:17px}.goal-wide-actions{display:grid;grid-template-columns:1fr 1fr}.goal-wide-actions label{grid-column:1/-1;margin:0}.goal-wide-actions .quest-complete{grid-column:1/-1}.goal-wide-actions .icon-btn{justify-self:end}.task-goal-focus{grid-template-columns:1fr;padding:16px}.task-goal-focus>.secondary{grid-column:auto}.task-add-form{grid-template-columns:1fr}.task-add-form .task-title-field{grid-column:auto}.task-row{grid-template-columns:40px minmax(0,1fr) 40px;padding:13px}.task-row>label{grid-column:2/4}.task-row>.icon-btn{grid-column:3;grid-row:1}.task-toolbar{width:100%}.task-toolbar button{flex:1}}
+/* Language and appearance settings live in an anchored menu instead of floating over content. */
+.settings-menu{position:relative}.settings-trigger{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:8px 11px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2);color:var(--text);cursor:pointer;font:inherit;font-size:.72rem;font-weight:750}.settings-popover{position:absolute;z-index:1200;right:0;bottom:calc(100% + 8px);width:min(290px,calc(100vw - 24px));padding:12px;border:1px solid var(--line);border-radius:15px;background:var(--surface);box-shadow:var(--shadow);color:var(--text)}.settings-popover header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.settings-popover label{display:grid;gap:7px}.settings-popover label>span{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:.7rem;font-weight:750}.settings-popover select{width:100%}.settings-theme{display:flex;align-items:center;gap:10px;width:100%;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2);color:var(--text);text-align:left;cursor:pointer}.settings-theme span,.settings-theme b,.settings-theme small{display:block}.settings-theme small{margin-top:2px;color:var(--muted)}.settings-menu.landing .settings-popover{top:calc(100% + 8px);bottom:auto}.settings-menu.onboarding{position:absolute;z-index:5;top:20px;right:20px}.settings-menu.onboarding .settings-popover{top:calc(100% + 8px);bottom:auto}.workspace-settings{display:none}.landing-nav-actions{display:flex;align-items:center;gap:8px}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ai-goal-purpose {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+@media (max-width:720px){.sidebar .settings-menu{display:none}.workspace-settings{display:block}.workspace-settings .settings-trigger span{display:none}.workspace-settings .settings-popover{top:calc(100% + 8px);bottom:auto}.settings-menu.onboarding{top:12px;right:12px}.settings-menu.onboarding .settings-trigger span{display:none}.landing-nav-actions .settings-trigger span{display:none}}

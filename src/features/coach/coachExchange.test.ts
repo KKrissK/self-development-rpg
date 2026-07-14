@@ -28,6 +28,7 @@ describe('AI coach exchange', () => {
       ],
     })
     expect(parseCoachResponse(valid).status).toBe('valid')
+    expect(parseCoachResponse(`Itt az eredmény:\n\`\`\`json\n${valid}\n\`\`\`\nKész.`).status).toBe('valid')
     expect(parseCoachResponse('not json').status).toBe('invalid')
     expect(parseCoachResponse('x'.repeat(50001)).status).toBe('invalid')
   })

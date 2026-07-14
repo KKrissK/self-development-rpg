@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowDown, ArrowRight, BookOpen, Check, CheckCircle2, CircleUserRound, Compass, Database, FileText, Layers3, LockKeyhole, Moon, Sparkles, Sun, Target, TrendingUp, WalletCards } from 'lucide-react'
 import { brand } from '../../config/brand'
 import './landing.css'
+import { SettingsMenu } from '../../i18n/I18n'
 
 function StudioPreview({ mode, onMode }: { mode: 'light' | 'dark'; onMode: (mode: 'light' | 'dark') => void }) {
   return <div className={`studio-demo ${mode}`} aria-label={`${mode} Dashboard preview`}>
@@ -28,7 +29,7 @@ function AiPreview() {
 export function LandingPage({ onStart }: { onStart: () => void }) {
   const [previewMode, setPreviewMode] = useState<'light' | 'dark'>('light')
   return <main className="landing-page">
-    <nav className="landing-nav" aria-label="Landing navigation"><a className="landing-logo" href="#top"><span>{brand.mark}</span><div><b>{brand.productName}</b><small>Your private space</small></div></a><div className="landing-nav-links"><a href="#system">How it connects</a><a href="#ai">AI workflow</a><a href="#privacy">Privacy</a></div><button onClick={onStart}>Open your workspace <ArrowRight size={15}/></button></nav>
+    <nav className="landing-nav" aria-label="Landing navigation"><a className="landing-logo" href="#top"><span>{brand.mark}</span><div><b>{brand.productName}</b><small>Your private space</small></div></a><div className="landing-nav-links"><a href="#system">How it connects</a><a href="#ai">AI workflow</a><a href="#privacy">Privacy</a></div><div className="landing-nav-actions"><SettingsMenu placement="landing"/><button onClick={onStart}>Open your workspace <ArrowRight size={15}/></button></div></nav>
 
     <section className="landing-hero" id="top"><div className="landing-aura one"/><div className="landing-aura two"/><div className="landing-hero-copy"><p className="landing-kicker"><Sparkles size={14}/> A clearer way to grow</p><h1>See where you are. Decide where you’re going. Keep moving forward.</h1><p className="landing-lede">Bring your skills, Goals, learning, career, and finances into one private place—so you can focus on what matters next.</p><div className="landing-hero-actions"><button className="landing-cta" onClick={onStart}>Build your workspace <ArrowRight size={18}/></button><a href="#system">Explore the studio <ArrowDown size={15}/></a></div><div className="landing-proof"><span><LockKeyhole size={15}/> Local-first</span><span><CircleUserRound size={15}/> No account</span><span><Sparkles size={15}/> Bring your own AI</span></div></div><div className="landing-hero-visual"><StudioPreview mode={previewMode} onMode={setPreviewMode}/><span className="landing-float-card one"><Target size={15}/><b>Attention stays visible</b></span><span className="landing-float-card two"><TrendingUp size={15}/><b>Progress gains context</b></span></div></section>
 

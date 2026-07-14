@@ -3,10 +3,11 @@ import { ArrowRight, ArrowUpRight, BookOpen, Check, Circle, ExternalLink, Plus, 
 import { useWorkspace } from '../../app/AppState'
 import { addQuest, completeQuest, setQuestStatus } from '../../domain/actions'
 import type { LearningResource, QuestStatus } from '../../domain/model'
+import { useI18n } from '../../i18n/I18n'
 
 type DashboardDestination = 'skills' | 'goals' | 'library' | 'career' | 'profile'
 
-const money = (amount: number, currency: string) => new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
+const money = (amount: number, currency: string, locale: string) => new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
 
 function GoalResourceLinks({ resourceIds, resources }: { resourceIds?: string[]; resources: LearningResource[] }) {
   const linked = resources.filter((resource) => resourceIds?.includes(resource.id))
@@ -16,6 +17,7 @@ function GoalResourceLinks({ resourceIds, resources }: { resourceIds?: string[];
 
 export function Dashboard({ onNavigate }: { onNavigate: (page: DashboardDestination) => void }) {
   const { state, update } = useWorkspace()
+  const { locale } = useI18n()
   const [questTitle, setQuestTitle] = useState('')
   if (!state) return null
 
@@ -47,7 +49,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: DashboardDestinat
 
       <button className="panel dashboard-nav-card skills-glance" onClick={() => onNavigate('skills')}><div className="panel-title"><div><p className="eyebrow">Capabilities</p><h2>{skills.length ? `${skills.length} skills in view` : 'Start your profile'}</h2></div><span className="card-orb lilac"><Sparkles/></span></div>{skills.length ? <div className="skill-cloud">{skills.slice(0, 5).map((skill, index) => <span key={skill.id} style={{ '--level': `${skill.level * 10}%`, '--delay': index } as React.CSSProperties}><i/><b>{skill.name}</b><small>{skill.level}/10</small></span>)}</div> : <p className="empty">Add skills and the experience behind them.</p>}<span className="card-source">Open Skills <ArrowRight size={14}/></span></button>
 
-      <button className="panel dashboard-nav-card money-glance" onClick={() => onNavigate('career')}><div className="panel-title"><div><p className="eyebrow">Monthly picture</p><h2>{money(income, state.moneyPlan.currency)}</h2></div><span className="card-orb coral"><WalletCards/></span></div><p className="muted">active income across {state.incomeSources.filter((item) => item.profileId === profileId && item.active).length} source{state.incomeSources.filter((item) => item.profileId === profileId && item.active).length === 1 ? '' : 's'}</p><div className="money-path"><span><small>Current</small><i style={{ width: `${Math.min(100, state.moneyPlan.monthlyTarget ? income / state.moneyPlan.monthlyTarget * 100 : 0)}%` }}/></span><b>{state.moneyPlan.monthlyTarget ? `${Math.round(income / state.moneyPlan.monthlyTarget * 100)}% of target` : 'Set a target'}</b></div><div className="mini-metric"><span>Target</span><b>{money(state.moneyPlan.monthlyTarget, state.moneyPlan.currency)}</b></div><span className="card-source">Open Career <ArrowRight size={14}/></span></button>
+      <button className="panel dashboard-nav-card money-glance" onClick={() => onNavigate('career')}><div className="panel-title"><div><p className="eyebrow">Monthly picture</p><h2>{money(income, state.moneyPlan.currency, locale)}</h2></div><span className="card-orb coral"><WalletCards/></span></div><p className="muted">active income across {state.incomeSources.filter((item) => item.profileId === profileId && item.active).length} source{state.incomeSources.filter((item) => item.profileId === profileId && item.active).length === 1 ? '' : 's'}</p><div className="money-path"><span><small>Current</small><i style={{ width: `${Math.min(100, state.moneyPlan.monthlyTarget ? income / state.moneyPlan.monthlyTarget * 100 : 0)}%` }}/></span><b>{state.moneyPlan.monthlyTarget ? `${Math.round(income / state.moneyPlan.monthlyTarget * 100)}% of target` : 'Set a target'}</b></div><div className="mini-metric"><span>Target</span><b>{money(state.moneyPlan.monthlyTarget, state.moneyPlan.currency, locale)}</b></div><span className="card-source">Open Career <ArrowRight size={14}/></span></button>
 
       <section className="panel span-2 dashboard-action-panel learning-glance"><div className="panel-title"><div><p className="eyebrow">Learning in motion</p><h2>Learning resources</h2></div><button className="panel-source-link" onClick={() => onNavigate('library')}>Open Library <ArrowRight size={15}/></button></div>{learning.length ? <div className="dashboard-learning-list">{learning.map((resource, index) => <div className="resource-row dashboard-learning-row" key={resource.id}><span className="resource-number">0{index + 1}</span><button className="dashboard-item-link" onClick={() => onNavigate('library')}><span className="kind">{resource.kind}</span><b>{resource.title}</b><small>{resource.creator || 'Creator not recorded'}</small></button><select aria-label={`Learning status for ${resource.title}`} value={resource.status} onChange={(event) => update((current) => ({ ...current, resources: current.resources.map((item) => item.id === resource.id ? { ...item, status: event.target.value as LearningResource['status'] } : item) }))}><option value="queued">Queued</option><option value="in-progress">In progress</option><option value="completed">Completed</option></select></div>)}</div> : <button className="dashboard-empty-action" onClick={() => onNavigate('library')}><BookOpen size={19}/><span><b>Your learning space is open.</b><small>Add something useful when it earns a place.</small></span><ArrowRight size={15}/></button>}</section>
     </div>

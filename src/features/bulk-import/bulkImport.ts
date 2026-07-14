@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { createId } from '../../domain/id'
 import { goalXpForPriority, priorityForGoalDifficulty } from '../../domain/goalRewards'
 import type { AppState, CvVariant, GoalTask, IncomeSource, KnowledgeNote, LearningResource, Quest, Skill } from '../../domain/model'
+import { extractJsonObject } from '../../platform/json'
 
 const safeUrl = z.string().max(1000).refine((value) => !value || /^https?:\/\//i.test(value), 'Only HTTP(S) links are supported.')
 const profilePatch = z.object({ name: z.string().min(1).max(80).optional(), title: z.string().max(100).optional(), bio: z.string().max(1000).optional() }).strict()
@@ -38,7 +39,7 @@ const summarize = (data: BulkImport): BulkSummary => ({ skills: data.skills.leng
 export function parseBulkImport(raw: string): BulkParseResult {
   if (raw.length > 200_000) return { status: 'invalid', reason: 'Import is larger than 200 KB.' }
   try {
-    const result = bulkImportSchema.safeParse(JSON.parse(raw))
+    const result = bulkImportSchema.safeParse(JSON.parse(extractJsonObject(raw)))
     return result.success ? { status: 'valid', data: result.data, summary: summarize(result.data) } : { status: 'invalid', reason: result.error.issues[0]?.message ?? 'Import did not match the required format.' }
   } catch { return { status: 'invalid', reason: 'Import is not valid JSON.' } }
 }

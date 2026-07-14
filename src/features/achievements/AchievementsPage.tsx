@@ -3,6 +3,7 @@ import { Award, CalendarDays, ExternalLink, ImagePlus, Link2, Pencil, Plus, Spar
 import { uid, useWorkspace } from '../../app/AppState'
 import type { Achievement, AchievementKind } from '../../domain/model'
 import { ACHIEVEMENT_IMAGE_ACCEPT, validateAchievementImage } from '../../platform/storage/achievementImageRepository'
+import { useI18n } from '../../i18n/I18n'
 
 const kindLabels: Record<AchievementKind, string> = {
   project: 'Project', milestone: 'Milestone', award: 'Award', certification: 'Certification', contribution: 'Contribution', other: 'Other',
@@ -102,6 +103,7 @@ function AchievementEditor({ achievement, skills, onCancel, onSaved }: { achieve
 }
 
 export function AchievementsPage() {
+  const { locale } = useI18n()
   const { state, update, achievementImages } = useWorkspace()
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -131,7 +133,7 @@ export function AchievementsPage() {
       const skill = skills.find((item) => item.id === achievement.skillId)
       return <article className={`panel achievement-card ${achievement.image ? 'has-image' : ''}`} key={achievement.id}>
         <div className="achievement-visual">{achievement.image ? <AchievementImagePreview imageId={achievement.image.id} title={achievement.title}/> : <div className="achievement-placeholder"><Sparkles size={30}/><span>{kindLabels[achievement.kind]}</span></div>}</div>
-        <div className="achievement-card-body"><div className="achievement-meta"><span className="kind"><Award size={13}/>{kindLabels[achievement.kind]}</span>{achievement.achievedAt && <time dateTime={achievement.achievedAt}><CalendarDays size={13}/>{new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(`${achievement.achievedAt}T00:00:00`))}</time>}</div><h2>{achievement.title}</h2>{achievement.description && <p>{achievement.description}</p>}{skill && <span className="achievement-skill">Built with {skill.name}</span>}<footer>{achievement.url ? <a className="achievement-link" href={achievement.url} target="_blank" rel="noreferrer"><Link2 size={16}/> Open link <ExternalLink size={13}/></a> : <span/>}<div><button className="icon-btn" aria-label={`Edit ${achievement.title}`} onClick={() => { setEditingId(achievement.id); setAdding(false) }}><Pencil size={16}/></button><button className="icon-btn" aria-label={`Delete ${achievement.title}`} onClick={() => void remove(achievement)}><Trash2 size={17}/></button></div></footer></div>
+        <div className="achievement-card-body"><div className="achievement-meta"><span className="kind"><Award size={13}/>{kindLabels[achievement.kind]}</span>{achievement.achievedAt && <time dateTime={achievement.achievedAt}><CalendarDays size={13}/>{new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(`${achievement.achievedAt}T00:00:00`))}</time>}</div><h2>{achievement.title}</h2>{achievement.description && <p>{achievement.description}</p>}{skill && <span className="achievement-skill">Built with {skill.name}</span>}<footer>{achievement.url ? <a className="achievement-link" href={achievement.url} target="_blank" rel="noreferrer"><Link2 size={16}/> Open link <ExternalLink size={13}/></a> : <span/>}<div><button className="icon-btn" aria-label={`Edit ${achievement.title}`} onClick={() => { setEditingId(achievement.id); setAdding(false) }}><Pencil size={16}/></button><button className="icon-btn" aria-label={`Delete ${achievement.title}`} onClick={() => void remove(achievement)}><Trash2 size={17}/></button></div></footer></div>
       </article>
     })}</div>
     {!achievements.length && !adding && <section className="achievement-empty"><Trophy size={32}/><h2>Make your progress visible to yourself.</h2><p>Your first entry can be this app, a work win, a certificate, or anything you are genuinely proud of.</p><button className="primary" onClick={() => setAdding(true)}><Plus size={18}/> Add the first one</button></section>}

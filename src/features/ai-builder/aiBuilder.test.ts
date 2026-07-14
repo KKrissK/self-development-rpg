@@ -23,6 +23,21 @@ describe('portable contextual AI imports', () => {
     expect(prompt).toContain('Return JSON only')
   })
 
+  it('anchors an AI-generated goal to the selected existing skill', () => {
+    const prompt = buildItemPrompt('quests', 'Give me a useful next outcome.', {
+      ...context,
+      focusSkill: { name: 'TypeScript', level: 4, targetLevel: 7, evidence: 'Builds small React features.', strengths: ['Components'], growthAreas: ['Type design'] },
+    })
+    expect(prompt).toContain('"focusSkill"')
+    expect(prompt).toContain('"name": "TypeScript"')
+    expect(prompt).toContain('use the focusSkill name exactly as skillName')
+  })
+
+  it('accepts an AI response wrapped in Hungarian commentary', () => {
+    const wrapped = 'Íme a kért válasz:\n```json\n{"schemaVersion":1,"skills":[{"name":"SQL","category":"Adat","level":3,"targetLevel":6,"status":"learning","evidence":"Egyszerű lekérdezések"}]}\n```\nRemélem, hasznos.'
+    expect(parseAiItemResponse(wrapped, 'skills').status).toBe('valid')
+  })
+
   it('accepts only the requested item collection', () => {
     const skills = JSON.stringify({ schemaVersion: 1, skills: [{ name: 'TypeScript', category: 'Technical', level: 3, targetLevel: 7, status: 'learning', evidence: 'Built a small app.' }] })
     const quests = JSON.stringify({ schemaVersion: 1, quests: [{ title: 'Ship a demo', notes: '', priority: 'high', status: 'next', xp: 20 }] })

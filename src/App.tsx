@@ -14,6 +14,7 @@ import { AchievementsPage } from './features/achievements/AchievementsPage'
 import { LandingPage } from './features/landing/LandingPage'
 import './styles.css'
 import './redesign.css'
+import { I18nProvider } from './i18n/I18n'
 
 function Workspace() {
   const { state } = useWorkspace()
@@ -26,4 +27,4 @@ function Workspace() {
   return <Shell page={page} setPage={setPage}>{pages[page]}</Shell>
 }
 
-export default function App() { return <WorkspaceProvider><Workspace/></WorkspaceProvider> }
+export default function App() { return <I18nProvider><WorkspaceProvider><Workspace/></WorkspaceProvider></I18nProvider> }

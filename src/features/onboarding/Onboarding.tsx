@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { ArrowRight, Upload } from 'lucide-react'
 import { useWorkspace } from '../../app/AppState'
 import { brand } from '../../config/brand'
+import { SettingsMenu } from '../../i18n/I18n'
 import { MAX_BACKUP_FILE_SIZE, parseWorkspaceBackup } from '../profile/workspaceBackup'
 
 export function Onboarding({ onBack }: { onBack?: () => void }) {
@@ -30,5 +31,15 @@ export function Onboarding({ onBack }: { onBack?: () => void }) {
     }
   }
 
-  return <main className="onboarding">{onBack && <button className="onboarding-back" onClick={onBack}>← Back to overview</button>}<section className="onboarding-card"><div className="brand-mark large">{brand.mark}</div><p className="eyebrow">{brand.eyebrow}</p><h1>Build your character.</h1><p className="lede">Not a fantasy avatar—the real you. Map what you know, choose what comes next, and turn growth into visible progress.</p><form onSubmit={(event) => { event.preventDefault(); if (name.trim()) createProfile({ name, title }) }}><label>Your name<input autoFocus required maxLength={80} value={name} onChange={(event) => setName(event.target.value)} placeholder="Kris"/></label><label>Current role or direction<input maxLength={100} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Builder, analyst, designer…"/></label><button className="primary" type="submit">Open dashboard <ArrowRight size={18}/></button></form><div className="onboarding-restore"><span>Already have an Untitled backup?</span><button className="secondary" disabled={busy} onClick={() => input.current?.click()}><Upload size={17}/> Restore complete backup</button><input ref={input} hidden type="file" accept="application/json,.json" onChange={(event) => void restore(event.target.files?.[0])}/></div>{message && <p className="notice" role="status">{message}</p>}<small>Your data stays in this browser. No account required.</small></section></main>
+  return <main className="onboarding">
+    <SettingsMenu placement="onboarding"/>
+    {onBack && <button className="onboarding-back" onClick={onBack}>← Back to overview</button>}
+    <section className="onboarding-card">
+      <div className="brand-mark large">{brand.mark}</div><p className="eyebrow">{brand.eyebrow}</p><h1>Build your character.</h1>
+      <p className="lede">Not a fantasy avatar—the real you. Map what you know, choose what comes next, and turn growth into visible progress.</p>
+      <form onSubmit={(event) => { event.preventDefault(); if (name.trim()) createProfile({ name, title }) }}><label>Your name<input autoFocus required maxLength={80} value={name} onChange={(event) => setName(event.target.value)} placeholder="Kris"/></label><label>Current role or direction<input maxLength={100} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Builder, analyst, designer…"/></label><button className="primary" type="submit">Open dashboard <ArrowRight size={18}/></button></form>
+      <div className="onboarding-restore"><span>Already have an Untitled backup?</span><button className="secondary" disabled={busy} onClick={() => input.current?.click()}><Upload size={17}/> Restore complete backup</button><input ref={input} hidden type="file" accept="application/json,.json" onChange={(event) => void restore(event.target.files?.[0])}/></div>
+      {message && <p className="notice" role="status">{message}</p>}<small>Your data stays in this browser. No account required.</small>
+    </section>
+  </main>
 }

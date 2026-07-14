@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { AppState } from '../../domain/model'
 import { createId } from '../../domain/id'
 import { applyBulkImport, parseBulkImport, type BulkImport, type BulkSummary } from '../bulk-import/bulkImport'
+import { extractJsonObject } from '../../platform/json'
 
 export type ItemTarget = 'skills' | 'quests' | 'tasks' | 'resources'
 
@@ -10,6 +11,7 @@ export interface AiBuilderContext {
   existingSkills: { name: string; level: number; targetLevel?: number; evidence?: string; assessmentSummary?: string; strengths?: string[]; growthAreas?: string[] }[]
   existingGoals?: { title: string; status: string; skillName?: string }[]
   selectedGoal?: { title: string; notes: string; dueDate?: string; linkedSkill: AiBuilderContext['existingSkills'][number] | null }
+  focusSkill?: AiBuilderContext['existingSkills'][number]
 }
 
 export type AiItemParseResult =
@@ -75,7 +77,7 @@ export function buildItemPrompt(target: ItemTarget, request: string, context: Ai
   return `You convert a person's plain-language request into structured items for a local self-development app.
 
 TASK
-Create one or more ${labels[target]} from the request between <user_request> tags. Preserve the user's intent, use concise language, and do not invent experience, credentials, completed work, or links. For skills, treat self-described ability conservatively and put only stated experience in evidence. For goals, make each outcome broad enough to contain several tasks but still observable and finishable, then choose easy, medium, or hard honestly; never supply XP because the app calculates it. For tasks, create a realistic ordered path toward the selected Goal: adapt difficulty and starting point to the linked skill evidence when present, do not assume missing ability, avoid vague actions, and use the selected Goal title exactly in every goalTitle. For resources, only include a URL when you are confident it is real; otherwise use an empty string.
+Create one or more ${labels[target]} from the request between <user_request> tags. Preserve the user's intent, use concise language, and do not invent experience, credentials, completed work, or links. For skills, treat self-described ability conservatively and put only stated experience in evidence. For goals, make each outcome broad enough to contain several tasks but still observable and finishable, then choose easy, medium, or hard honestly; never supply XP because the app calculates it. When USER CONTEXT contains focusSkill, create goals that measurably improve that skill from its recorded current level toward its target level, address its evidence and growth areas, and use the focusSkill name exactly as skillName for every returned goal. For tasks, create a realistic ordered path toward the selected Goal: adapt difficulty and starting point to the linked skill evidence when present, do not assume missing ability, avoid vague actions, and use the selected Goal title exactly in every goalTitle. For resources, only include a URL when you are confident it is real; otherwise use an empty string.
 
 USER CONTEXT
 ${JSON.stringify(context, null, 2)}
@@ -127,14 +129,8 @@ When the interview is complete, return JSON only, without markdown fences or com
 }`
 }
 
-function unwrapJson(raw: string): string {
-  const trimmed = raw.trim()
-  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)
-  return fenced?.[1] ?? trimmed
-}
-
 export function parseAiItemResponse(raw: string, expectedTarget: ItemTarget): AiItemParseResult {
-  const parsed = parseBulkImport(unwrapJson(raw))
+  const parsed = parseBulkImport(extractJsonObject(raw))
   if (parsed.status === 'invalid') return parsed
 
   const populated = (['skills', 'quests', 'tasks', 'resources'] as const).filter((key) => parsed.data[key].length > 0)
@@ -151,7 +147,7 @@ export function parseAiItemResponse(raw: string, expectedTarget: ItemTarget): Ai
 export function parseSkillAssessmentResponse(raw: string): AssessmentParseResult {
   if (raw.length > 50_000) return { status: 'invalid', reason: 'Response is too large.' }
   try {
-    const parsed = assessmentSchema.safeParse(JSON.parse(unwrapJson(raw)))
+    const parsed = assessmentSchema.safeParse(JSON.parse(extractJsonObject(raw)))
     return parsed.success
       ? { status: 'valid', data: parsed.data }
       : { status: 'invalid', reason: parsed.error.issues[0]?.message ?? 'Assessment did not match the required format.' }
