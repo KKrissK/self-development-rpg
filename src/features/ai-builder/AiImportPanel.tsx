@@ -61,8 +61,19 @@ export function AiImportPanel({ target, mode, goalId, focusSkillIds }: { target:
     const supportingResources = selected ? state.resources.filter((resource) => selected.resourceIds?.includes(resource.id)).map((resource) => ({ title: resource.title, kind: resource.kind, status: resource.status, notes: resource.notes })) : []
     const existingTasks = selected ? state.tasks.filter((task) => task.goalId === selected.id).map((task) => ({ title: task.title, notes: task.notes, status: task.status, dueDate: task.dueDate })) : []
     const focusSkills = skills.filter((skill) => focusSkillIds?.includes(skill.id)).map((skill) => existingSkills.find((item) => item.name === skill.name)!).filter(Boolean)
+    const activeIncomeSources = state.incomeSources
+      .filter((item) => item.profileId === profile.id && item.active)
+      .map(({ name, type, monthlyAmount, currency }) => ({ name, type, monthlyAmount, currency }))
     return {
       profile: { title: profile.title, bio: profile.bio },
+      financialSnapshot: {
+        currentMonthlyIncome: activeIncomeSources.reduce((sum, item) => sum + item.monthlyAmount, 0),
+        currency: state.moneyPlan.currency,
+        monthlyTarget: state.moneyPlan.monthlyTarget,
+        monthlyExpenses: state.moneyPlan.monthlyExpenses,
+        savingsGoal: state.moneyPlan.savingsGoal,
+        activeIncomeSources,
+      },
       existingSkills,
       existingGoals: state.quests.filter((goal) => goal.profileId === profile.id && goal.status !== 'done').map((goal) => ({ title: goal.title, status: goal.status, skillNames: [...new Set([...(goal.skillIds ?? []), ...(goal.skillId ? [goal.skillId] : [])])].map((id) => skills.find((skill) => skill.id === id)?.name).filter((name): name is string => Boolean(name)) })),
       selectedGoal: selected ? { title: selected.title, notes: selected.notes, dueDate: selected.dueDate, linkedSkill: linkedSkills[0] ?? null, linkedSkills, supportingResources, existingTasks } : undefined,
@@ -102,21 +113,22 @@ export function AiImportPanel({ target, mode, goalId, focusSkillIds }: { target:
       setRaw(value)
       setItemPreview(null)
       setAssessmentPreview(null)
-      setMessage('AI result pasted. Validate it to preview what will be added.')
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      validate(value)
     } catch {
-      setMessage('Clipboard access was blocked. Paste into the box manually with Ctrl+V or long-press Paste.')
+      setMessage('Clipboard access was blocked. Allow clipboard access in your browser, then try again.')
     }
   }
 
-  function validate() {
+  function validate(value: string) {
     if (mode === 'create') {
-      const result = parseAiItemResponse(raw, target)
+      const result = parseAiItemResponse(value, target)
       if (result.status === 'invalid') { setItemPreview(null); setMessage(result.reason); return }
       setItemPreview(result.data)
       setMessage('Response validated. Review every item before importing.')
       return
     }
-    const result = parseSkillAssessmentResponse(raw)
+    const result = parseSkillAssessmentResponse(value)
     if (result.status === 'invalid') { setAssessmentPreview(null); setMessage(result.reason); return }
     setAssessmentPreview(result.data)
     setMessage('Assessment validated. Review the level and reasoning before importing.')
@@ -139,7 +151,7 @@ export function AiImportPanel({ target, mode, goalId, focusSkillIds }: { target:
       {target === 'tasks' ? <><div className="step"><span>1</span><div><h2>Generate Tasks from the selected Goal</h2><p>No extra description is needed. AI will build the plan from everything already connected to this Goal.</p></div></div><div className="task-ai-context-summary"><span><b>{selectedGoal?.linkedSkills?.length ?? 0}</b><small>linked skills</small></span><span><b>{selectedGoal?.supportingResources?.length ?? 0}</b><small>Library resources</small></span><span><b>{selectedGoal?.existingTasks?.length ?? 0}</b><small>existing Tasks</small></span>{selectedGoal?.dueDate && <span><b>{selectedGoal.dueDate}</b><small>Goal deadline</small></span>}</div><button className="primary" onClick={generatePrompt}><Sparkles size={18}/> Generate Task plan</button></> : <><div className="step"><span>1</span><div><h2>{assessment ? 'Describe one skill' : `Describe the ${targetCopy[target].label} you want`}</h2><p>{quickEstimate ? 'Add any experience you already know. The AI will ask one short batch of simple experience questions—no knowledge test.' : assessment ? 'Add your real experience and uncertainties. The AI will interview you and include a short practical knowledge check.' : 'Include enough detail for useful results. Then create the prompt you will send to an AI.'}</p></div></div><label>{assessment ? 'Skill and context' : `What ${targetCopy[target].label} should the AI create?`}<span className="field-guidance">{assessment ? 'Enter exactly one skill. Describe where you use it, tasks you complete independently, concrete experience, and areas where you are uncertain.' : targetCopy[target].guidance}</span><textarea className="request-area" value={request} maxLength={5000} onChange={(event) => setRequest(event.target.value)} placeholder={assessment ? 'Describe one skill, how you use it, experience, and uncertainties.' : targetCopy[target].placeholder}/></label><button className="primary" onClick={generatePrompt}><Sparkles size={18}/> Create AI prompt</button></>}
     </section>
 
-    {prompt && <div className="ai-exchange-grid" ref={promptStepRef}><section className="panel ai-prompt-ready"><div className="step"><span>2</span><div><h2>Copy this prompt into an AI</h2><p>{AI_HANDOFF_COPY.followQuestions}</p></div></div><div className="ai-ready-callout"><Check size={18}/><span><b>Send the whole prompt unchanged</b><small>It already tells the AI which response format to use.</small></span></div><button className={promptCopied ? 'primary copied' : 'primary'} aria-live="polite" onClick={copyPrompt}>{promptCopied ? <Check size={18}/> : <Clipboard size={18}/>} {promptCopied ? 'Copied' : 'Copy prompt'}</button><details className="ai-technical-details"><summary>View prompt text <ChevronDown size={15}/></summary><textarea aria-label="Generated AI prompt" className="code-area" readOnly value={prompt}/></details></section><section className="panel"><div className="step"><span>3</span><div><h2>Paste the AI's final answer here</h2><p>In the AI chat, copy only its final answer. Return here, paste it below, then click Check response.</p></div></div><button className="secondary ai-paste-button" onClick={() => void pasteResult()}><ClipboardPaste size={18}/> Paste AI answer</button><textarea aria-label="AI response JSON" className="code-area" value={raw} onChange={(event) => setRaw(event.target.value)} placeholder="Paste the AI's final answer here"/><button className="secondary" disabled={!raw.trim()} onClick={validate}>Check response</button></section></div>}
+    {prompt && <div className="ai-exchange-grid" ref={promptStepRef}><section className="panel ai-prompt-ready"><div className="step"><span>2</span><div><h2>Copy this prompt into an AI</h2><p>{AI_HANDOFF_COPY.followQuestions}</p></div></div><div className="ai-ready-callout"><Check size={18}/><span><b>Send the whole prompt unchanged</b><small>It already tells the AI which response format to use.</small></span></div><button className={promptCopied ? 'primary copied' : 'primary'} aria-live="polite" onClick={copyPrompt}>{promptCopied ? <Check size={18}/> : <Clipboard size={18}/>} {promptCopied ? 'Copied' : 'Copy prompt'}</button><details className="ai-technical-details"><summary>View prompt text <ChevronDown size={15}/></summary><textarea aria-label="Generated AI prompt" className="code-area" readOnly value={prompt}/></details></section><section className="panel ai-clipboard-import"><div className="step"><span>3</span><div><h2>Import the AI's final answer</h2><p>Use the clipboard button for one-step paste and validation, or paste into the field manually and check it.</p></div></div><textarea aria-label="AI response JSON" className="code-area" value={raw} onChange={(event) => setRaw(event.target.value)} placeholder="The AI's final answer will appear here"/><div className="ai-response-actions"><button className="primary ai-paste-button" onClick={() => void pasteResult()}><ClipboardPaste size={18}/> Paste and check clipboard</button><button className="secondary" disabled={!raw.trim()} onClick={() => validate(raw)}>Check response</button></div></section></div>}
 
     {message && <p className="notice" role="status">{message}</p>}
     {itemPreview && <section className="panel preview ai-import-preview"><p className="eyebrow">REVIEW BEFORE SAVING</p><h2>{itemCount} {targetCopy[target].label} ready</h2><ItemPreview data={itemPreview} target={target}/><button className="primary" onClick={importItems}><Upload size={18}/> Save {itemCount} items</button></section>}

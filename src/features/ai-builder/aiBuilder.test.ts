@@ -38,6 +38,17 @@ describe('portable contextual AI imports', () => {
     expect(prompt).toContain('return every focusSkills name exactly in skillNames')
   })
 
+  it('does not infer skill links for a new general Goal', () => {
+    const prompt = buildItemPrompt('quests', 'Build a carrier tracking app.', {
+      ...context,
+      existingSkills: [{ name: 'Java', level: 5, evidence: 'Builds backend services.' }],
+    })
+    expect(prompt).toContain('Existing skills are background context, not automatically relevant')
+    expect(prompt).toContain('does not imply Java')
+    expect(prompt).toContain('ask about it in the single numbered clarification batch')
+    expect(prompt).toContain('return an empty skillNames array or omit it')
+  })
+
   it('accepts an AI response wrapped in Hungarian commentary', () => {
     const wrapped = 'Íme a kért válasz:\n```json\n{"schemaVersion":1,"skills":[{"name":"SQL","category":"Adat","level":3,"status":"learning","evidence":"Egyszerű lekérdezések"}]}\n```\nRemélem, hasznos.'
     expect(parseAiItemResponse(wrapped, 'skills').status).toBe('valid')
@@ -61,6 +72,7 @@ describe('portable contextual AI imports', () => {
   it('plans Goal Tasks from recorded skill level and evidence', () => {
     const taskContext = {
       ...context,
+      financialSnapshot: { currentMonthlyIncome: 400000, currency: 'HUF', monthlyTarget: 550000, monthlyExpenses: 150000, savingsGoal: 0, activeIncomeSources: [{ name: 'QA role', type: 'salary', monthlyAmount: 400000, currency: 'HUF' }] },
       existingSkills: [{ name: 'Java', level: 4, evidence: 'Maintains Spring services independently.', strengths: ['Routine API work'], growthAreas: ['Concurrency'] }],
       selectedGoal: { title: 'Improve Java skills', notes: 'Become reliable on non-routine backend work.', dueDate: '2026-08-01', linkedSkill: { name: 'Java', level: 4, evidence: 'Maintains Spring services independently.', strengths: ['Routine API work'], growthAreas: ['Concurrency'] }, linkedSkills: [{ name: 'Java', level: 4, evidence: 'Maintains Spring services independently.', strengths: ['Routine API work'], growthAreas: ['Concurrency'] }], supportingResources: [{ title: 'Java Concurrency in Practice', kind: 'book', status: 'queued' }], existingTasks: [{ title: 'Review thread basics', notes: '', status: 'todo' }] },
     }
@@ -70,9 +82,14 @@ describe('portable contextual AI imports', () => {
     expect(prompt).toContain('Java Concurrency in Practice')
     expect(prompt).toContain('Review thread basics')
     expect(prompt).toContain('2026-08-01')
+    expect(prompt).toContain('"currentMonthlyIncome": 400000')
+    expect(prompt).toContain('Never ask for the current monthly income')
     expect(prompt).toContain('"level": 4')
-    expect(prompt).toContain('do not assume missing ability')
-    expect(prompt).toContain('avoid duplicating existing Tasks')
+    expect(prompt).toContain('Do not assume missing ability')
+    expect(prompt).toContain('A linked skill is context, not proof that it needs improvement')
+    expect(prompt).toContain('do not propose improving reliable Jenkins jobs')
+    expect(prompt).toContain('Ask one compact batch of 2-7 numbered questions')
+    expect(prompt).toContain('Never ask questions one at a time')
 
     const state = createInitialState({ name: 'Kris', title: 'Builder' })
     state.quests.push({ id: 'goal-java', profileId: state.activeProfileId, title: 'Improve Java skills', notes: '', priority: 'medium', status: 'now', xp: 30 })
@@ -95,11 +112,11 @@ describe('AI skill assessment exchange', () => {
     expect(prompt).toContain('10 = field-shaping mastery')
   })
 
-  it('builds an adaptive interview prompt with a strict level rubric', () => {
+  it('builds a single-batch assessment prompt with a strict level rubric', () => {
     const prompt = buildSkillAssessmentPrompt('Assess my TypeScript.', context)
-    expect(prompt).toContain('fixed total of 4-8 questions')
-    expect(prompt).toContain('Question 2 of 6')
-    expect(prompt).toContain('does not increase or reset the announced total')
+    expect(prompt).toContain('one compact batch of 4-8 numbered questions')
+    expect(prompt).toContain('Never ask questions one at a time')
+    expect(prompt).toContain("after the user's single reply")
     expect(prompt).toContain('1 = awareness only')
     expect(prompt).toContain('10 = field-shaping mastery')
     expect(prompt).toContain('Most working practitioners should fall between 3 and 7')

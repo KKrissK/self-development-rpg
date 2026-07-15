@@ -115,7 +115,9 @@ export function AchievementsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   if (!state) return null
-  const achievements = state.achievements.filter((item) => item.profileId === state.activeProfileId)
+  const achievements = state.achievements
+    .filter((item) => item.profileId === state.activeProfileId)
+    .sort((a, b) => (b.achievedAt ?? b.createdAt).localeCompare(a.achievedAt ?? a.createdAt))
   const skills = state.skills.filter((item) => item.profileId === state.activeProfileId).map(({ id, name }) => ({ id, name }))
   const editing = achievements.find((item) => item.id === editingId)
 
@@ -135,11 +137,13 @@ export function AchievementsPage() {
     {adding && <AchievementEditor skills={skills} onCancel={closeEditor} onSaved={() => { closeEditor(); setMessage('Achievement added.') }}/>} 
     {editing && <AchievementEditor achievement={editing} skills={skills} onCancel={closeEditor} onSaved={() => { closeEditor(); setMessage('Achievement updated.') }}/>} 
     {message && <p className="notice" role="status">{message}</p>}
-    <div className="achievement-grid">{achievements.map((achievement) => {
+    <div className="achievement-timeline" aria-label="Achievement timeline">{achievements.map((achievement) => {
       const linkedSkills = [...new Set([...(achievement.skillIds ?? []), ...(achievement.skillId ? [achievement.skillId] : [])])].map((id) => skills.find((skill) => skill.id === id)).filter((skill): skill is { id: string; name: string } => Boolean(skill))
-      return <article className={`panel achievement-card ${achievement.image ? 'has-image' : ''}`} key={achievement.id}>
+      const timelineDate = achievement.achievedAt ?? achievement.createdAt
+      const timelineDateLabel = achievement.achievedAt ? 'Achieved' : 'Added'
+      return <article className={`panel achievement-card timeline-item ${achievement.image ? 'has-image' : ''}`} key={achievement.id}>
         <div className="achievement-visual">{achievement.image ? <AchievementImagePreview imageId={achievement.image.id} title={achievement.title}/> : <div className="achievement-placeholder"><Sparkles size={30}/><span>{kindLabels[achievement.kind]}</span></div>}</div>
-        <div className="achievement-card-body"><div className="achievement-meta"><span className="kind"><Award size={13}/>{kindLabels[achievement.kind]}</span>{achievement.achievedAt && <time dateTime={achievement.achievedAt}><CalendarDays size={13}/>{new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(`${achievement.achievedAt}T00:00:00`))}</time>}</div><h2>{achievement.title}</h2>{achievement.description && <p>{achievement.description}</p>}{linkedSkills.length > 0 && <div className="achievement-skills">{linkedSkills.map((skill) => <span className="achievement-skill" key={skill.id}>Built with {skill.name}</span>)}</div>}<footer>{achievement.url ? <a className="achievement-link" href={achievement.url} target="_blank" rel="noreferrer"><Link2 size={16}/> Open link <ExternalLink size={13}/></a> : <span/>}<div><button className="icon-btn" aria-label={`Edit ${achievement.title}`} onClick={() => { setEditingId(achievement.id); setAdding(false) }}><Pencil size={16}/></button><button className="icon-btn" aria-label={`Delete ${achievement.title}`} onClick={() => void remove(achievement)}><Trash2 size={17}/></button></div></footer></div>
+        <div className="achievement-card-body"><div className="achievement-meta"><span className="kind"><Award size={13}/>{kindLabels[achievement.kind]}</span><time dateTime={timelineDate}><CalendarDays size={13}/><span>{timelineDateLabel}</span>{new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(timelineDate))}</time></div><h2>{achievement.title}</h2>{achievement.description && <p>{achievement.description}</p>}{linkedSkills.length > 0 && <div className="achievement-skills">{linkedSkills.map((skill) => <span className="achievement-skill" key={skill.id}>Related skill: {skill.name}</span>)}</div>}<footer>{achievement.url ? <a className="achievement-link" href={achievement.url} target="_blank" rel="noreferrer"><Link2 size={16}/> Open link <ExternalLink size={13}/></a> : <span/>}<div><button className="icon-btn" aria-label={`Edit ${achievement.title}`} onClick={() => { setEditingId(achievement.id); setAdding(false) }}><Pencil size={16}/></button><button className="icon-btn" aria-label={`Delete ${achievement.title}`} onClick={() => void remove(achievement)}><Trash2 size={17}/></button></div></footer></div>
       </article>
     })}</div>
     {!achievements.length && !adding && <section className="achievement-empty"><Trophy size={32}/><h2>Make your progress visible to yourself.</h2><p>Your first entry can be this app, a work win, a certificate, or anything you are genuinely proud of.</p><button className="primary" onClick={() => setAdding(true)}><Plus size={18}/> Add the first one</button></section>}

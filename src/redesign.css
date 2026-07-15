@@ -331,6 +331,10 @@ label{gap:8px;color:var(--muted);font-size:.7rem;font-weight:620}
 
 /* Goals: compact overview and purpose-built creation controls. */
 .goals-page .quest-overview{align-items:stretch;margin-bottom:14px}
+.goals-page .goal-page-tabs{margin-bottom:22px}
+.goals-page .goal-page-tabs span{margin-left:5px;color:var(--muted);font-size:.72rem}
+.goals-page.history-selected .page-head .primary,.goals-page.history-selected .add-workbench,.goals-page.history-selected .goal-wide-list{display:none}
+.goals-page:not(.history-selected) .quest-history{display:none}
 .goals-page .quest-stat{min-height:0;padding:13px 16px;border-radius:16px}
 .goals-page .quest-stat>span{font-size:.62rem;letter-spacing:.08em}
 .goals-page .quest-stat>b{margin:3px 0 1px;font-size:1.45rem;line-height:1.1}
